@@ -28,6 +28,7 @@ const el = {
   statusPill: $('#statusPill'),
   envbar: $('#envbar'),
   envText: $('#envText'),
+  btnInstallToolchain: $('#btnInstallToolchain'),
   result: $('#result'),
   resultPath: $('#resultPath'),
   btnOpenOut: $('#btnOpenOut'),
@@ -354,6 +355,17 @@ el.btnAgain.addEventListener('click', () => {
   el.url.select();
 });
 
+if (el.btnInstallToolchain) el.btnInstallToolchain.addEventListener('click', () => installToolchain());
+if (window.forgeGui.onToolchainLog) {
+  window.forgeGui.onToolchainLog((text) => {
+    String(text || '')
+      .split(/\r?\n/)
+      .map((s) => s.replace(/\s+$/, ''))
+      .filter((s) => s.length)
+      .forEach((line) => appendLog(line));
+  });
+}
+
 el.btnMin.addEventListener('click', () => window.forgeGui.minimize());
 el.btnClose.addEventListener('click', () => window.forgeGui.close());
 
@@ -418,28 +430,80 @@ window.forgeGui.onExit(({ code }) => {
   }
 });
 
-// ------------------------------------------------------------------ 启动
+// ------------------------------------------------------------------ 工具链状态
 
-(async function init() {
-  const info = await window.forgeGui.info();
-
+/**
+ * 三种状态分开说，别再把「还没装」写成「不完整 / 打包会失败」：
+ *   - 发布包本来就不带 toolchain\node_modules（450MB）
+ *   - 首次生成时 forge 会自动装（npm install + Electron 运行时）
+ */
+function renderEnv(info) {
+  const btn = el.btnInstallToolchain;
   if (!info || !info.ok) {
     el.envbar.className = 'envbar warn';
     el.envText.innerHTML =
       '<code>找不到 forge.ps1：请把 CloudClientForge.exe 放在 CloudClientForge 目录里（和 forge.ps1、toolchain 同级）</code>' +
       (info && info.appVersion ? ' · v' + info.appVersion : '');
     el.btnGenerate.disabled = true;
-    appendLog('[x] 找不到 forge.ps1，无法生成。把 CloudClientForge.exe 放到 CloudClientForge 目录后重新打开。');
-  } else if (!info.toolchain) {
-    el.envbar.className = 'envbar warn';
-    el.envText.innerHTML = '工具链缺失：<code>' + info.root + '\\toolchain\\node_modules</code>';
-    appendLog('[!] 工具链（toolchain\\node_modules）不完整，打包会失败；只生成工程（勾选「只生成工程」）仍可用。');
-  } else {
-    el.envbar.className = 'envbar ok';
-    el.envText.innerHTML =
-      '工具链就绪 · Electron <code>' + info.electron + '</code> · <code>' + info.root + '</code>' +
-      (info.appVersion ? ' · v' + info.appVersion : '');
+    if (btn) btn.classList.add('hidden');
+    return;
   }
+
+  const ver = info.appVersion ? ' · v' + info.appVersion : '';
+  el.btnGenerate.disabled = false;
+
+  if (!info.toolchain) {
+    el.envbar.className = 'envbar warn';
+    el.envText.innerHTML =
+      '工具链未安装 · 首次生成会自动下载（约 1~2 分钟，需联网） · <code>' + info.root + '</code>' + ver;
+    if (btn) btn.classList.remove('hidden');
+    return;
+  }
+
+  if (!info.electronRuntime) {
+    el.envbar.className = 'envbar warn';
+    el.envText.innerHTML =
+      'Electron 运行时缺失 · 首次生成会自动补下载（约 100MB） · <code>' + info.root + '</code>' + ver;
+    if (btn) btn.classList.remove('hidden');
+    return;
+  }
+
+  el.envbar.className = 'envbar ok';
+  el.envText.innerHTML = '工具链就绪 · Electron <code>' + info.electron + '</code> · <code>' + info.root + '</code>' + ver;
+  if (btn) btn.classList.add('hidden');
+}
+
+async function installToolchain() {
+  const btn = el.btnInstallToolchain;
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = '安装中…';
+  el.envbar.className = 'envbar warn';
+  el.envText.textContent = '正在安装工具链（npm install + Electron 运行时）…';
+  appendLog('');
+  appendLog('== 安装工具链（首次约 1~2 分钟，日志会实时输出）==');
+
+  const res = await window.forgeGui.installToolchain();
+  btn.disabled = false;
+  btn.textContent = '现在安装';
+
+  if (res && res.ok) {
+    appendLog('[ok] 工具链安装完成。');
+    renderEnv(res.info || (await window.forgeGui.info()));
+  } else {
+    appendLog('[x] 工具链安装失败（exit ' + ((res && res.code) || '?') + '），看上面的日志。');
+    el.envbar.className = 'envbar warn';
+    el.envText.innerHTML = '工具链安装失败 · 也可手动在 <code>toolchain</code> 里执行 <code>npm install</code>';
+    if (btn) btn.classList.remove('hidden');
+  }
+}
+
+// ------------------------------------------------------------------ 启动
+
+(async function init() {
+  const info = await window.forgeGui.info();
+
+  renderEnv(info);
 
   forgeInfoCache = info;
   applySettings(await window.forgeGui.settings());

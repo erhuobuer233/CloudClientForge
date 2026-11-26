@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('forgeGui', {
   setClientIcon: (p) => ipcRenderer.invoke('gui:client-set-icon', p),
   openLauncher: () => ipcRenderer.invoke('gui:open-launcher'),
   openMain: () => ipcRenderer.invoke('gui:show-main'),
+  installToolchain: () => ipcRenderer.invoke('gui:install-toolchain'),
+  onToolchainLog: (cb) => ipcRenderer.on('gui:toolchain-log', (_e, text) => cb(text)),
 
   pickDir: () => ipcRenderer.invoke('gui:pick-dir'),
   openPath: (p) => ipcRenderer.invoke('gui:open-path', p),

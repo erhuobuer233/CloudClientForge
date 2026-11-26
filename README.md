@@ -263,6 +263,15 @@ cd toolchain\node_modules\electron
 node install.js
 ```
 
+**4.55 状态栏提示「工具链未安装」是不是坏了？**
+
+不是。**发布包里本来就不带 `toolchain\node_modules`**（约 450MB），只带 `toolchain\package.json`。
+首次生成时 `forge.ps1` 会自动 `npm install` + 下载 Electron 运行时（合计约 1~2 分钟，需联网），
+之后就一直复用。
+
+v1.2.2 起界面会把它说得更清楚（`工具链未安装 · 首次生成会自动下载`），并在状态栏右侧给一个
+**「现在安装」**按钮，可以先手动装好再生成，日志会实时输出。
+
 **4.6 首次运行就报 `Invalid configuration object` / `configuration.electronVersion should be: null | string`？**
 
 v1.2.0 及更早的一个真实 bug：**恰好在那次运行里第一次安装工具链**时，`npm install` 的输出会被

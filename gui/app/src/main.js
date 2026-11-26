@@ -66,18 +66,21 @@ function forgeInfo() {
     return { ok: false, root: null, appVersion: APP_VERSION, toolchain: false, electron: null };
   }
   const tcElectron = path.join(root, 'toolchain', 'node_modules', 'electron', 'package.json');
+  const tcElectronExe = path.join(root, 'toolchain', 'node_modules', 'electron', 'dist', 'electron.exe');
   let electron = null;
   try {
     electron = JSON.parse(fs.readFileSync(tcElectron, 'utf8')).version || null;
   } catch (_) {
     electron = null;
   }
+  const electronRuntime = fs.existsSync(tcElectronExe);
   return {
     ok: true,
     root,
     appVersion: APP_VERSION,
     toolchain: !!electron,
     electron,
+    electronRuntime,
     templates: fs.existsSync(path.join(root, 'lib', 'template', 'main.js')),
   };
 }
@@ -434,6 +437,32 @@ ipcMain.handle('gui:list-clients', () => listClients());
 ipcMain.handle('gui:open-launcher', () => {
   createLauncherWindow();
   return true;
+});
+
+ipcMain.handle('gui:install-toolchain', async () => {
+  const script = path.join(forgeRoot || '', 'tools', 'install-toolchain.ps1');
+  if (!forgeRoot || !fs.existsSync(script)) {
+    return { ok: false, error: '找不到 tools/install-toolchain.ps1' };
+  }
+  const code = await new Promise((resolve) => {
+    const cp = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script], {
+      windowsHide: true,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '' },
+    });
+    const pipe = (stream) => {
+      stream.on('data', (buf) => {
+        const text = buf.toString('utf8');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('gui:toolchain-log', text);
+        }
+      });
+    };
+    pipe(cp.stdout);
+    pipe(cp.stderr);
+    cp.on('error', () => resolve(-1));
+    cp.on('exit', (c) => resolve(c));
+  });
+  return { ok: code === 0, code, info: forgeInfo() };
 });
 
 ipcMain.handle('gui:show-main', () => {
