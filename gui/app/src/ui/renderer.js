@@ -35,9 +35,12 @@ const el = {
   btnAgain: $('#btnAgain'),
   btnMin: $('#btnMin'),
   btnClose: $('#btnClose'),
+  btnTheme: $('#btnTheme'),
+  btnLauncher: $('#btnLauncher'),
 };
 
 const state = {
+  theme: 'dark',
   running: false,
   success: false,
   targetDir: '',
@@ -64,7 +67,19 @@ function collectSettings() {
     skipBuild: el.optSkipBuild.checked,
     force: el.optForce.checked,
     advancedOpen: el.btnAdvanced.classList.contains('open'),
+    theme: state.theme,
   };
+}
+
+/** 深色 / 浅色切换（写 <html data-theme>，所有颜色走 CSS 变量） */
+function setTheme(t) {
+  const theme = t === 'light' ? 'light' : 'dark';
+  state.theme = theme;
+  document.documentElement.setAttribute('data-theme', theme);
+  if (el.btnTheme) {
+    el.btnTheme.textContent = theme === 'dark' ? '☀' : '☾';
+    el.btnTheme.title = theme === 'dark' ? '切换到浅色主题' : '切换到深色主题';
+  }
 }
 
 function saveSettingsSoon() {
@@ -86,6 +101,7 @@ function applySettings(s) {
   el.optSkipBuild.checked = !!s.skipBuild;
   el.optForce.checked = !!s.force;
   if (s.advancedOpen) toggleAdvanced(true);
+  setTheme(s.theme || 'dark');
 }
 
 // ------------------------------------------------------------------ 默认输出目录
@@ -442,4 +458,79 @@ window.forgeGui.onExit(({ code }) => {
   el.url.addEventListener('blur', () => validateUrl(false));
 
   window.forgeGui.onLog(() => {});
+})();
+
+// ------------------------------------------------------------------ 启动器视图（主窗口内）
+
+(function initShell() {
+  const tabs = Array.from(document.querySelectorAll('.tab'));
+  const views = {
+    generate: document.getElementById('view-generate'),
+    launcher: document.getElementById('view-launcher'),
+  };
+  const listEl = document.getElementById('clientList');
+  const emptyEl = document.getElementById('clientEmpty');
+  const subEl = document.getElementById('launcherSub');
+  const countEl = document.getElementById('clientCount');
+  const btnRefresh = document.getElementById('btnRefreshClients');
+  const btnOpenDir = document.getElementById('btnOpenClientsDir');
+  const btnGo = document.getElementById('btnGoGenerate');
+
+  let clientView = null;
+  if (listEl && window.CloudClientsView) {
+    clientView = window.CloudClientsView.mount({
+      hostEl: document.getElementById('window'),
+      listEl,
+      emptyEl,
+      subEl,
+      countEl,
+    });
+  }
+
+  function switchView(name) {
+    for (const tab of tabs) tab.classList.toggle('active', tab.dataset.view === name);
+    for (const key of Object.keys(views)) {
+      if (views[key]) views[key].classList.toggle('active', key === name);
+    }
+    if (name === 'launcher' && clientView) clientView.refresh();
+  }
+
+  for (const tab of tabs) {
+    tab.addEventListener('click', () => switchView(tab.dataset.view));
+  }
+
+  if (btnRefresh && clientView) btnRefresh.addEventListener('click', () => clientView.refresh());
+
+  if (btnOpenDir) {
+    btnOpenDir.addEventListener('click', async () => {
+      const info = forgeInfoCache || (await window.forgeGui.info());
+      if (info && info.ok) {
+        const ok = await window.forgeGui.openPath(info.root + '\\Cloudgame');
+        if (!ok && clientView) clientView.toast('目录还不存在，先生成一个客户端', 'error');
+      }
+    });
+  }
+
+  if (btnGo) btnGo.addEventListener('click', () => switchView('generate'));
+
+  // 生成结束后刷新列表与角标
+  window.forgeGui.onExit(() => {
+    if (clientView) clientView.refresh();
+  });
+
+  // 主题切换
+  setTheme(state.theme);
+  if (el.btnTheme) {
+    el.btnTheme.addEventListener('click', () => {
+      setTheme(state.theme === 'dark' ? 'light' : 'dark');
+      window.forgeGui.saveSettings(collectSettings());
+    });
+  }
+
+  // 独立启动器窗口
+  if (el.btnLauncher) {
+    el.btnLauncher.addEventListener('click', () => window.forgeGui.openLauncher());
+  }
+
+  if (clientView) clientView.refresh();
 })();
