@@ -1629,3 +1629,34 @@ body {
   background: linear-gradient(135deg, #7c8bff, #b07bff);
   color: #fff;
 }
+/* 启动器标题栏的「+」（生成客户端）：比普通 win-btn 大一号，带一点强调色 */
+.win-btn.add {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+  padding-bottom: 2px;
+  color: #e8ecff;
+  background: linear-gradient(135deg, rgba(124, 139, 255, 0.32), rgba(176, 123, 255, 0.32));
+  border: 1px solid rgba(150, 170, 255, 0.3);
+}
+
+.win-btn.add:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #7c8bff, #b07bff);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(124, 139, 255, 0.45);
+}
+
+:root[data-theme='light'] .win-btn.add {
+  color: #3b47a8;
+  background: linear-gradient(135deg, rgba(124, 139, 255, 0.2), rgba(176, 123, 255, 0.2));
+  border-color: rgba(91, 108, 255, 0.3);
+}
+
+:root[data-theme='light'] .win-btn.add:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #7c8bff, #b07bff);
+}
