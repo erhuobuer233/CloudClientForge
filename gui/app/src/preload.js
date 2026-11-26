@@ -27,6 +27,9 @@ contextBridge.exposeInMainWorld('forgeGui', {
   openMain: () => ipcRenderer.invoke('gui:show-main'),
   installToolchain: () => ipcRenderer.invoke('gui:install-toolchain'),
   onToolchainLog: (cb) => ipcRenderer.on('gui:toolchain-log', (_e, text) => cb(text)),
+  onToolchainStage: (cb) => ipcRenderer.on('gui:toolchain-stage', (_e, payload) => cb(payload)),
+  checkUpdate: () => ipcRenderer.invoke('gui:check-update'),
+  openExternal: (u) => ipcRenderer.invoke('gui:open-external', u),
 
   pickDir: () => ipcRenderer.invoke('gui:pick-dir'),
   openPath: (p) => ipcRenderer.invoke('gui:open-path', p),

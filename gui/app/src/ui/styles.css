@@ -1529,3 +1529,90 @@ body {
 .envbar .hidden {
   display: none;
 }
+/* 工具链安装进度条（贴在状态栏下沿） */
+.envbar {
+  position: relative;
+  overflow: hidden;
+}
+
+.env-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  box-shadow: 0 0 10px rgba(124, 139, 255, 0.35);
+  background: rgba(124, 139, 255, 0.15);
+  overflow: hidden;
+}
+
+.env-progress > b {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.env-progress > b::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: env-shimmer 1.3s linear infinite;
+}
+
+@keyframes env-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.env-progress.hidden {
+  display: none;
+}
+
+/* 启动器底部：版本 / 更新 */
+.launcher-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--stroke);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.foot-ver {
+  color: var(--text);
+}
+
+.foot-update {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foot-update.new {
+  color: var(--success);
+  cursor: pointer;
+}
+
+.launcher-foot .mini-btn {
+  height: 26px;
+  padding: 0 12px;
+  font-size: 11.5px;
+  border-radius: 8px;
+}
+
+.mini-btn.ghost.hidden,
+.launcher-foot .hidden {
+  display: none;
+}

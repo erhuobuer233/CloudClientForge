@@ -14,6 +14,9 @@
   const btnMain = document.getElementById('btnMain');
   const btnClose = document.getElementById('btnClose');
   const btnOpenMain = document.getElementById('btnOpenMain');
+  const verText = document.getElementById('verText');
+  const updateText = document.getElementById('updateText');
+  const btnCheckUpdate = document.getElementById('btnCheckUpdate');
 
   let theme = 'dark';
 
@@ -49,6 +52,44 @@
     });
   }
 
+  let updateUrl = null;
+
+  async function checkUpdate() {
+    if (!updateText) return;
+    updateText.classList.remove('new');
+    updateText.textContent = '检查更新中…';
+    if (btnCheckUpdate) btnCheckUpdate.disabled = true;
+    try {
+      const res = await window.forgeGui.checkUpdate();
+      if (res && res.ok) {
+        if (verText) verText.textContent = 'v' + res.current;
+        if (res.newer) {
+          updateUrl = res.url;
+          updateText.textContent = '发现新版本 v' + res.latest + ' · 点这里';
+          updateText.classList.add('new');
+          updateText.title = res.url;
+        } else {
+          updateText.textContent = '已是最新版本';
+          updateUrl = null;
+        }
+      } else {
+        updateText.textContent = '暂时无法检查更新';
+        updateUrl = null;
+      }
+    } catch (_) {
+      updateText.textContent = '暂时无法检查更新';
+    } finally {
+      if (btnCheckUpdate) btnCheckUpdate.disabled = false;
+    }
+  }
+
+  if (btnCheckUpdate) btnCheckUpdate.addEventListener('click', () => checkUpdate());
+  if (updateText) {
+    updateText.addEventListener('click', () => {
+      if (updateUrl) window.forgeGui.openExternal(updateUrl);
+    });
+  }
+
   (async function init() {
     try {
       const s = await window.forgeGui.settings();
@@ -56,7 +97,12 @@
     } catch (_) {
       setTheme('dark');
     }
+    try {
+      const info = await window.forgeGui.info();
+      if (verText && info && info.appVersion) verText.textContent = 'v' + info.appVersion;
+    } catch (_) {}
     view.refresh();
+    checkUpdate();
   })();
 
   // 窗口获得焦点时刷新一下（别人刚生成完，切过来就能看到）

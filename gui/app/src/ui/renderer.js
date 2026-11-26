@@ -29,6 +29,7 @@ const el = {
   envbar: $('#envbar'),
   envText: $('#envText'),
   btnInstallToolchain: $('#btnInstallToolchain'),
+  envProgress: $('#envProgress'),
   result: $('#result'),
   resultPath: $('#resultPath'),
   btnOpenOut: $('#btnOpenOut'),
@@ -356,6 +357,23 @@ el.btnAgain.addEventListener('click', () => {
 });
 
 if (el.btnInstallToolchain) el.btnInstallToolchain.addEventListener('click', () => installToolchain());
+if (window.forgeGui.onToolchainStage) {
+  window.forgeGui.onToolchainStage((payload) => {
+    const stage = payload && payload.stage;
+    if (stage === 'npm') {
+      showProgress(true);
+      paintProgress(payload.percent || 8);
+      startProgressTicker(40);
+    } else if (stage === 'runtime') {
+      showProgress(true);
+      paintProgress(55);
+      startProgressTicker(95);
+    } else if (stage === 'done') {
+      paintProgress(100);
+      setTimeout(() => showProgress(false), 800);
+    }
+  });
+}
 if (window.forgeGui.onToolchainLog) {
   window.forgeGui.onToolchainLog((text) => {
     String(text || '')
@@ -473,6 +491,40 @@ function renderEnv(info) {
   if (btn) btn.classList.add('hidden');
 }
 
+let progressTimer = null;
+let progressCap = 0;
+
+function paintProgress(percent) {
+  const wrap = el.envProgress;
+  if (!wrap) return;
+  const bar = wrap.querySelector('b');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, percent)) + '%';
+}
+
+/** 阶段事件驱动：npm 阶段爬到 40%，Electron 运行时阶段爬到 95%，完成 100% */
+function startProgressTicker(cap) {
+  progressCap = cap;
+  if (progressTimer) clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    const wrap = el.envProgress;
+    const bar = wrap && wrap.querySelector('b');
+    if (!bar) return;
+    const cur = parseFloat(bar.style.width) || 0;
+    if (cur >= progressCap - 0.5) return;
+    paintProgress(cur + Math.max(0.25, (progressCap - cur) * 0.06));
+  }, 400);
+}
+
+function showProgress(show) {
+  if (!el.envProgress) return;
+  el.envProgress.classList.toggle('hidden', !show);
+  if (!show) {
+    if (progressTimer) clearInterval(progressTimer);
+    progressTimer = null;
+    paintProgress(0);
+  }
+}
+
 async function installToolchain() {
   const btn = el.btnInstallToolchain;
   if (!btn || btn.disabled) return;
@@ -483,7 +535,12 @@ async function installToolchain() {
   appendLog('');
   appendLog('== 安装工具链（首次约 1~2 分钟，日志会实时输出）==');
 
+  showProgress(true);
+  paintProgress(4);
+  startProgressTicker(40);
+
   const res = await window.forgeGui.installToolchain();
+  showProgress(false);
   btn.disabled = false;
   btn.textContent = '现在安装';
 

@@ -20,6 +20,7 @@ const {
 const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
+const https = require('node:https');
 
 const PRODUCT = 'CloudClientForge';
 const APP_DIR = path.join(__dirname, '..');
@@ -439,6 +440,74 @@ ipcMain.handle('gui:open-launcher', () => {
   return true;
 });
 
+function cmpVersion(a, b) {
+  const pa = String(a).split('.').map((n) => parseInt(n, 10) || 0);
+  const pb = String(b).split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const x = pa[i] || 0;
+    const y = pb[i] || 0;
+    if (x !== y) return x > y ? 1 : -1;
+  }
+  return 0;
+}
+
+ipcMain.handle('gui:check-update', async () => {
+  const current = APP_VERSION;
+  const url = 'https://api.github.com/repos/erhuobuer233/CloudClientForge/releases/latest';
+  const data = await new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    try {
+      const req = https.get(
+        url,
+        {
+          headers: { 'User-Agent': 'CloudClientForge/' + current, Accept: 'application/vnd.github+json' },
+          timeout: 8000,
+        },
+        (res) => {
+          if (res.statusCode !== 200) {
+            res.resume();
+            return finish(null);
+          }
+          let buf = '';
+          res.setEncoding('utf8');
+          res.on('data', (c) => (buf += c));
+          res.on('end', () => {
+            try {
+              finish(JSON.parse(buf));
+            } catch (_) {
+              finish(null);
+            }
+          });
+        }
+      );
+      req.on('timeout', () => {
+        req.destroy();
+        finish(null);
+      });
+      req.on('error', () => finish(null));
+    } catch (_) {
+      finish(null);
+    }
+  });
+
+  if (!data || !data.tag_name) return { ok: false, current, error: '连不上 GitHub' };
+  const latest = String(data.tag_name).replace(/^v/i, '');
+  return { ok: true, current, latest, newer: cmpVersion(latest, current) > 0, url: data.html_url };
+});
+
+ipcMain.handle('gui:open-external', (_e, u) => {
+  const url = String(u || '');
+  if (!/^https:\/\//i.test(url)) return false;
+  shell.openExternal(url).catch(() => {});
+  return true;
+});
+
 ipcMain.handle('gui:install-toolchain', async () => {
   const script = path.join(forgeRoot || '', 'tools', 'install-toolchain.ps1');
   if (!forgeRoot || !fs.existsSync(script)) {
@@ -449,11 +518,19 @@ ipcMain.handle('gui:install-toolchain', async () => {
       windowsHide: true,
       env: { ...process.env, ELECTRON_RUN_AS_NODE: '' },
     });
+    const send = (channel, payload) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
+    };
+    send('gui:toolchain-stage', { stage: 'npm', percent: 8 });
     const pipe = (stream) => {
       stream.on('data', (buf) => {
         const text = buf.toString('utf8');
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('gui:toolchain-log', text);
+        send('gui:toolchain-log', text);
+        if (/Electron 运行时(缺失|二进制)|补下载二进制/.test(text)) {
+          send('gui:toolchain-stage', { stage: 'runtime', percent: 55 });
+        }
+        if (/\[OK\] 工具链就绪/.test(text)) {
+          send('gui:toolchain-stage', { stage: 'done', percent: 100 });
         }
       });
     };
