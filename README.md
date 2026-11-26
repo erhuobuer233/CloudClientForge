@@ -309,6 +309,29 @@ Release 里的 exe 只是**工具本体**（138MB）；它仍然需要同目录�
 
 - CI：`.github\workflows\ci.yml`（`windows-latest`）会 `npm install` 工具链并跑上面这条冒烟测试。
   想省 CI 时间可以把 Electron 缓存换成 `actions/cache`（工作流里已带）。
+### 自动发版（GitHub Actions）
+
+`.github\workflows\release.yml`：**推 tag 就自动出包**。
+
+```powershell
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+流程：`windows-latest` → 装 toolchain（含 Electron 运行时）→ `tools\make-release.ps1 -Version <tag>`
+（构建 exe、组装便携包、算 SHA256、渲染发布说明）→ 上传 artifact → `gh release create`
+（附件是便携 zip，正文取自 `docs\release-notes-template.md`）。
+
+- 手动触发：Actions → **Release** → Run workflow，填版本号；勾 `dry_run` 只构建不发版
+- 本地等价一条命令：
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File tools\make-release.ps1 -Version 1.0.1
+  # 产物在 release-assets\（已在 .gitignore 里）
+  ```
+
+- 版本号只来自 tag / `-Version`，不会从上次生成的产物里继承，避免版本漂移
+
 - 没有单测框架：这个项目本质是「拼装 + 打包」，冒烟测试覆盖了最容易坏的环节
   （模板替换、路径、图标、语法）。
 

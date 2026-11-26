@@ -13,7 +13,9 @@ param(
     [switch]$Fast,
     [switch]$KeepRelease,
     [switch]$NoInstall,
-    [switch]$Clean
+    [switch]$Clean,
+    # 版本号：默认取环境里的 tag（CI 用 GITHUB_REF_NAME=v1.2.3），再退回 1.0.0
+    [string]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,6 +35,15 @@ $eb        = Join-Path $toolchain 'node_modules\.bin\electron-builder.cmd'
 $electronExe = Join-Path $toolchain 'node_modules\electron\dist\electron.exe'
 $asarCli   = Join-Path $toolchain 'node_modules\@electron\asar\bin\asar.js'
 
+if (-not $Version) {
+    $candidate = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { '' }
+    if ($candidate -match '^v?(\d+\.\d+\.\d+)$') { $Version = $Matches[1] }
+}
+# 注意：不要从上次生成的 package.json 读版本，否则本地构建会在 1.0.0 / 1.0.1 之间漂移。
+# 版本只来自 -Version 或 CI 的 tag，其它情况固定 1.0.0。
+if (-not $Version) { $Version = '1.0.0' }
+$Version = $Version.TrimStart('v')
+$asmVersion = if ($Version -match '^\d+\.\d+\.\d+') { ($Version -replace '[^0-9.].*$', '') + '.0' } else { '1.0.0.0' }
 function Step([string]$text) { Write-Host ''; Write-Host "== $text" -ForegroundColor Cyan }
 
 Step '0/5 检查环境'
@@ -44,7 +55,7 @@ if (-not (Test-Path (Join-Path $build 'launcher-gui.cs'))) { throw "找不到 $b
 # 所以第一次用必须再跑一次 node_modules\electron\install.js（脚本已自动处理）。
 . (Join-Path $root 'lib\ensure-toolchain.ps1')
 $electronVersion = Ensure-Toolchain -Toolchain $toolchain -NoInstall:$NoInstall
-Write-Host "   electron $electronVersion / electron-builder OK"
+Write-Host "   electron $electronVersion / electron-builder OK  |  CloudClientForge v$Version"
 
 Step '1/5 生成界面图标'
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'lib\make-forge-icon.ps1') -OutDir (Join-Path $guiApp 'assets')
@@ -54,7 +65,7 @@ Step '2/5 写 gui\app\package.json'
 $pkg = [ordered]@{
     name          = 'cloudclientforge-gui'
     productName   = 'CloudClientForge'
-    version       = '1.0.0'
+    version       = $Version
     description   = 'CloudClientForge - 一键把云游戏网页变成桌面客户端'
     author        = '本地封装'
     license       = 'MIT'
@@ -115,7 +126,7 @@ $infoContent = @"
 internal static class PayloadInfo
 {
     public const string Id = "$id";
-    public const string Version = "1.0.0.0";
+    public const string Version = "$asmVersion";
 }
 "@
 [System.IO.File]::WriteAllText($infoCs, $infoContent, (New-Object System.Text.UTF8Encoding($true)))

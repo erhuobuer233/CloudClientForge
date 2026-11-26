@@ -1,0 +1,116 @@
+name: Release
+
+# 触发方式：
+#   1) 推 tag：git tag v1.0.1 && git push origin v1.0.1  → 自动构建 + 发 Release
+#   2) 手动：Actions → Release → Run workflow（可选 dry_run，只构建不发版）
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '要发布的版本号（例如 1.0.1，不带 v）'
+        required: true
+      dry_run:
+        description: '只构建、不发 Release'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build & Release (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Cache Electron
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-44.7.2-${{ runner.os }}
+          restore-keys: |
+            electron-44.7.2-
+
+      - name: Install toolchain
+        working-directory: toolchain
+        run: |
+          npm install --no-audit --no-fund
+          node node_modules/electron/install.js
+
+      - name: Resolve version / dry-run
+        shell: pwsh
+        run: |
+          $v = '${{ inputs.version }}'
+          if (-not $v) { $v = '${{ github.ref_name }}' }
+          $v = $v.TrimStart('v')
+          if ($v -notmatch '^\d+\.\d+\.\d+') { throw "版本号不合法：$v" }
+          $dry = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ inputs.dry_run }}' } else { 'false' }
+          "VERSION=$v"  | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "DRY_RUN=$dry" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "VERSION=$v  DRY_RUN=$dry"
+
+      # 构建 exe → 组装便携包 → 算 SHA256 → 渲染 Release 说明
+      - name: Build portable bundle
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\make-release.ps1 -Version $env:VERSION -OutDir release-assets
+
+      - name: Show assets
+        shell: pwsh
+        run: Get-ChildItem release-assets | Format-Table Name, @{n='MB';e={[math]::Round($_.Length/1MB,1)}}
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CloudClientForge-v${{ env.VERSION }}
+          path: release-assets/*
+          retention-days: 7
+
+      - name: Create GitHub Release
+        if: env.DRY_RUN != 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "v$env:VERSION"
+          $asset = "release-assets/CloudClientForge-v$env:VERSION-win-x64.zip"
+          $notes = "release-assets/RELEASE_NOTES.md"
+          if (-not (Test-Path $asset)) { throw "找不到资产：$asset" }
+          if (-not (Test-Path $notes)) { throw "找不到说明：$notes" }
+
+          $exists = git tag -l $tag
+          if ($exists) {
+            Write-Host "使用已存在的 tag：$tag"
+            gh release create $tag $asset --title "CloudClientForge v$env:VERSION · Windows 便携版" --notes-file $notes
+          } else {
+            Write-Host "创建新 tag：$tag（基于默认分支）"
+            gh release create $tag $asset --title "CloudClientForge v$env:VERSION · Windows 便携版" --notes-file $notes --target main
+          }
+
+      - name: Summary
+        if: always()
+        shell: pwsh
+        run: |
+          $zip = "release-assets/CloudClientForge-v$env:VERSION-win-x64.zip"
+          "### CloudClientForge v$env:VERSION" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          if (Test-Path $zip) {
+            $sha = (Get-FileHash $zip -Algorithm SHA256).Hash
+            "- ZIP: ``$zip``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            "- SHA256: ``$sha``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
+          "- dry_run: ``$env:DRY_RUN``" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

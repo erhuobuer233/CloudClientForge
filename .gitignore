@@ -9,6 +9,9 @@ _build/*
 !_build/launcher-gui.cs
 gui/app/package-lock.json
 
+# 发版产物（tools\make-release.ps1 生成）
+release-assets/
+
 # 生成的客户端（默认输出目录：一个网址一个子文件夹）
 Cloudgame/
 
