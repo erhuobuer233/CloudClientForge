@@ -426,7 +426,8 @@ window.forgeGui.onExit(({ code }) => {
   if (!info || !info.ok) {
     el.envbar.className = 'envbar warn';
     el.envText.innerHTML =
-      '<code>找不到 forge.ps1：请把 CloudClientForge.exe 放在 CloudClientForge 目录里（和 forge.ps1、toolchain 同级）</code>';
+      '<code>找不到 forge.ps1：请把 CloudClientForge.exe 放在 CloudClientForge 目录里（和 forge.ps1、toolchain 同级）</code>' +
+      (info && info.appVersion ? ' · v' + info.appVersion : '');
     el.btnGenerate.disabled = true;
     appendLog('[x] 找不到 forge.ps1，无法生成。把 CloudClientForge.exe 放到 CloudClientForge 目录后重新打开。');
   } else if (!info.toolchain) {
@@ -436,7 +437,8 @@ window.forgeGui.onExit(({ code }) => {
   } else {
     el.envbar.className = 'envbar ok';
     el.envText.innerHTML =
-      '工具链就绪 · Electron <code>' + info.electron + '</code> · <code>' + info.root + '</code>';
+      '工具链就绪 · Electron <code>' + info.electron + '</code> · <code>' + info.root + '</code>' +
+      (info.appVersion ? ' · v' + info.appVersion : '');
   }
 
   forgeInfoCache = info;

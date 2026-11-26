@@ -41,6 +41,13 @@ if (-not $Version) {
 }
 # 注意：不要从上次生成的 package.json 读版本，否则本地构建会在 1.0.0 / 1.0.1 之间漂移。
 # 版本只来自 -Version 或 CI 的 tag，其它情况固定 1.0.0。
+if (-not $Version) {
+    $vf = Join-Path $root 'VERSION'
+    if (Test-Path $vf) {
+        $vv = (Get-Content $vf -First 1 -ErrorAction SilentlyContinue)
+        if ($vv -and $vv.Trim() -match '^\d+\.\d+\.\d+$') { $Version = $vv.Trim() }
+    }
+}
 if (-not $Version) { $Version = '1.0.0' }
 $Version = $Version.TrimStart('v')
 $asmVersion = if ($Version -match '^\d+\.\d+\.\d+') { ($Version -replace '[^0-9.].*$', '') + '.0' } else { '1.0.0.0' }

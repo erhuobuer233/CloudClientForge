@@ -23,6 +23,17 @@ const { spawn } = require('node:child_process');
 
 const PRODUCT = 'CloudClientForge';
 const APP_DIR = path.join(__dirname, '..');
+const APP_VERSION = app.getVersion();
+
+// 单实例：重复双击 exe 时聚焦已有窗口，而不是再开一个（以前会叠出好几个一样的窗口）
+const singleInstance = app.requestSingleInstanceLock();
+if (!singleInstance) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    showMainWindow();
+  });
+}
 
 let mainWindow = null;
 let child = null;
@@ -52,7 +63,7 @@ let forgeRoot = null;
 function forgeInfo() {
   const root = forgeRoot;
   if (!root) {
-    return { ok: false, root: null, toolchain: false, electron: null };
+    return { ok: false, root: null, appVersion: APP_VERSION, toolchain: false, electron: null };
   }
   const tcElectron = path.join(root, 'toolchain', 'node_modules', 'electron', 'package.json');
   let electron = null;
@@ -64,6 +75,7 @@ function forgeInfo() {
   return {
     ok: true,
     root,
+    appVersion: APP_VERSION,
     toolchain: !!electron,
     electron,
     templates: fs.existsSync(path.join(root, 'lib', 'template', 'main.js')),
@@ -578,7 +590,9 @@ ipcMain.on('gui:close', () => {
 
 // ---------------------------------------------------------------- 启动
 
-app.whenReady().then(() => {
+if (!singleInstance) {
+  // 已经有一个 CloudClientForge 在跑，本进程直接退出
+} else app.whenReady().then(() => {
   forgeRoot = findForgeRoot();
   createWindow();
   createTray();

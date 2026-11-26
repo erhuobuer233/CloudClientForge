@@ -38,8 +38,14 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$FORGE_VERSION = '1.2.1'
 $forgeRoot = $PSScriptRoot
+# 版本号：优先读同目录的 VERSION 文件（发版时只改这一处），否则用兜底值
+$FORGE_VERSION = '1.2.1'
+$versionFile = Join-Path $forgeRoot 'VERSION'
+if (Test-Path $versionFile) {
+    $v = (Get-Content $versionFile -First 1 -ErrorAction SilentlyContinue)
+    if ($v -and $v.Trim() -match '^\d+\.\d+\.\d+$') { $FORGE_VERSION = $v.Trim() }
+}
 $tpl = Join-Path $forgeRoot 'lib\template'
 $toolchain = Join-Path $forgeRoot 'toolchain'
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
