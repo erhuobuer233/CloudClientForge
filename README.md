@@ -12,6 +12,10 @@
 > 非官方工具：只是把你自己能打开的网页装进一个本地窗口，不绕过登录、不修改游戏文件、
 > 也不包含任何厂商资源；请遵守各站点服务条款，仅个人使用。
 
+> **直接下载**：Windows 便携版在 [Releases](https://github.com/erhuobuer233/CloudClientForge/releases/latest)
+> （`CloudClientForge-v1.0.0-win-x64.zip`，解压即用）。第一次生成前，在 `toolchain\` 里跑一次
+> `npm install` + `node node_modules\electron\install.js`；之后 `forge.ps1` / 界面都会自动复用。
+
 跑完你会得到：
 
 ```
