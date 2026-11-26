@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CloudClientForge 启动器</title>
+    <title>CloudClientForge</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="launcher-body">
@@ -25,7 +25,7 @@
         </div>
         <div class="win-actions">
           <button id="btnTheme" class="win-btn text" title="切换到浅色主题">☀</button>
-          <button id="btnMain" class="win-btn text" title="显示主界面">⌂</button>
+          <button id="btnMain" class="mini-btn strong win-main" type="button" title="打开生成客户端窗口">生成客户端</button>
           <button id="btnClose" class="win-btn close" title="关闭">
             <svg viewBox="0 0 12 12" width="12" height="12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
           </button>
@@ -45,8 +45,8 @@
 
         <div id="clientEmpty" class="empty hidden">
           <div class="empty-title">还没有生成任何客户端</div>
-          <div class="empty-sub">在主界面粘一个云游戏网址，生成完这里就能一键启动。</div>
-          <button id="btnOpenMain" class="mini-btn strong" type="button">打开主界面</button>
+          <div class="empty-sub">点「生成客户端」粘一个云游戏网址，生成完这里就能一键启动。</div>
+          <button id="btnOpenMain" class="mini-btn strong" type="button">生成客户端</button>
         </div>
         <footer class="launcher-foot">
           <span class="foot-ver" id="verText">v—</span>

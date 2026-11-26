@@ -32,7 +32,7 @@ if (!singleInstance) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    showMainWindow();
+    showLauncherWindow();
   });
 }
 
@@ -106,7 +106,7 @@ function createWindow() {
     roundedCorners: true,
     hasShadow: true,
     resizable: true,
-    title: PRODUCT,
+    title: PRODUCT + ' 生成客户端',
     icon: path.join(APP_DIR, 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -169,6 +169,17 @@ function killChild() {
 let launcherWindow = null;
 let tray = null;
 
+/** 启动器是主窗口：双击 exe / 第二次启动 / 托盘点击都聚焦它 */
+function showLauncherWindow() {
+  if (!launcherWindow || launcherWindow.isDestroyed()) {
+    createLauncherWindow();
+    return;
+  }
+  if (launcherWindow.isMinimized()) launcherWindow.restore();
+  launcherWindow.show();
+  launcherWindow.focus();
+}
+
 function showMainWindow() {
   if (!mainWindow || mainWindow.isDestroyed()) {
     createWindow();
@@ -199,7 +210,7 @@ function createLauncherWindow() {
     roundedCorners: true,
     hasShadow: true,
     resizable: true,
-    title: 'CloudClientForge 启动器',
+    title: 'CloudClientForge',
     icon: path.join(APP_DIR, 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -212,6 +223,12 @@ function createLauncherWindow() {
 
   launcherWindow.loadFile(path.join(__dirname, 'ui', 'launcher.html'));
   launcherWindow.once('ready-to-show', () => launcherWindow.show());
+  launcherWindow.on('close', (e) => {
+    if (tray && !app.isQuitting) {
+      e.preventDefault();
+      launcherWindow.hide();
+    }
+  });
   launcherWindow.on('closed', () => {
     launcherWindow = null;
   });
@@ -224,13 +241,13 @@ function createTray() {
     tray.setToolTip('CloudClientForge');
     tray.setContextMenu(
       Menu.buildFromTemplate([
-        { label: '打开启动器', click: () => createLauncherWindow() },
-        { label: '显示主界面', click: () => showMainWindow() },
+        { label: '打开启动器', click: () => showLauncherWindow() },
+        { label: '生成客户端', click: () => showMainWindow() },
         { type: 'separator' },
         { label: '退出', click: () => { app.isQuitting = true; app.quit(); } },
       ])
     );
-    tray.on('click', () => createLauncherWindow());
+    tray.on('click', () => showLauncherWindow());
     tray.on('double-click', () => showMainWindow());
   } catch (_) {
     tray = null; // 托盘不可用不影响主流程
@@ -436,7 +453,7 @@ ipcMain.handle('gui:pick-dir', async () => {
 ipcMain.handle('gui:list-clients', () => listClients());
 
 ipcMain.handle('gui:open-launcher', () => {
-  createLauncherWindow();
+  showLauncherWindow();
   return true;
 });
 
@@ -684,10 +701,11 @@ ipcMain.handle('gui:copy', (_e, text) => {
 });
 
 ipcMain.on('gui:minimize', () => mainWindow && mainWindow.minimize());
-ipcMain.on('gui:close', () => {
+ipcMain.on('gui:close', (e) => {
   killChild();
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (tray) mainWindow.hide();
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win && !win.isDestroyed()) {
+    if (tray) win.hide();
     else app.quit();
   } else {
     app.quit();
@@ -700,12 +718,9 @@ if (!singleInstance) {
   // 已经有一个 CloudClientForge 在跑，本进程直接退出
 } else app.whenReady().then(() => {
   forgeRoot = findForgeRoot();
-  createWindow();
   createTray();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+  createLauncherWindow(); // 启动器就是主窗口
+  app.on('activate', () => showLauncherWindow());
 });
 
 app.on('window-all-closed', () => {

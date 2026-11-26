@@ -1616,3 +1616,16 @@ body {
 .launcher-foot .hidden {
   display: none;
 }
+/* 启动器标题栏里的「生成客户端」按钮 */
+.launcher-window .win-main {
+  height: 26px;
+  padding: 0 14px;
+  font-size: 11.5px;
+  border-radius: 9px;
+  -webkit-app-region: no-drag;
+}
+
+:root[data-theme='light'] .launcher-window .win-main {
+  background: linear-gradient(135deg, #7c8bff, #b07bff);
+  color: #fff;
+}

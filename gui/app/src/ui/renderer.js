@@ -583,66 +583,11 @@ async function installToolchain() {
   window.forgeGui.onLog(() => {});
 })();
 
-// ------------------------------------------------------------------ 启动器视图（主窗口内）
+// ------------------------------------------------------------------ 主题 / 返回启动器
 
 (function initShell() {
-  const tabs = Array.from(document.querySelectorAll('.tab'));
-  const views = {
-    generate: document.getElementById('view-generate'),
-    launcher: document.getElementById('view-launcher'),
-  };
-  const listEl = document.getElementById('clientList');
-  const emptyEl = document.getElementById('clientEmpty');
-  const subEl = document.getElementById('launcherSub');
-  const countEl = document.getElementById('clientCount');
-  const btnRefresh = document.getElementById('btnRefreshClients');
-  const btnOpenDir = document.getElementById('btnOpenClientsDir');
-  const btnGo = document.getElementById('btnGoGenerate');
-
-  let clientView = null;
-  if (listEl && window.CloudClientsView) {
-    clientView = window.CloudClientsView.mount({
-      hostEl: document.getElementById('window'),
-      listEl,
-      emptyEl,
-      subEl,
-      countEl,
-    });
-  }
-
-  function switchView(name) {
-    for (const tab of tabs) tab.classList.toggle('active', tab.dataset.view === name);
-    for (const key of Object.keys(views)) {
-      if (views[key]) views[key].classList.toggle('active', key === name);
-    }
-    if (name === 'launcher' && clientView) clientView.refresh();
-  }
-
-  for (const tab of tabs) {
-    tab.addEventListener('click', () => switchView(tab.dataset.view));
-  }
-
-  if (btnRefresh && clientView) btnRefresh.addEventListener('click', () => clientView.refresh());
-
-  if (btnOpenDir) {
-    btnOpenDir.addEventListener('click', async () => {
-      const info = forgeInfoCache || (await window.forgeGui.info());
-      if (info && info.ok) {
-        const ok = await window.forgeGui.openPath(info.root + '\\Cloudgame');
-        if (!ok && clientView) clientView.toast('目录还不存在，先生成一个客户端', 'error');
-      }
-    });
-  }
-
-  if (btnGo) btnGo.addEventListener('click', () => switchView('generate'));
-
-  // 生成结束后刷新列表与角标
-  window.forgeGui.onExit(() => {
-    if (clientView) clientView.refresh();
-  });
-
-  // 主题切换
   setTheme(state.theme);
+
   if (el.btnTheme) {
     el.btnTheme.addEventListener('click', () => {
       setTheme(state.theme === 'dark' ? 'light' : 'dark');
@@ -650,10 +595,8 @@ async function installToolchain() {
     });
   }
 
-  // 独立启动器窗口
+  // 生成窗口里的 ▤：回到启动器（启动器是主窗口）
   if (el.btnLauncher) {
     el.btnLauncher.addEventListener('click', () => window.forgeGui.openLauncher());
   }
-
-  if (clientView) clientView.refresh();
 })();

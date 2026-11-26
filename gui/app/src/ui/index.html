@@ -26,7 +26,7 @@
         </div>
         <div class="win-actions">
           <button id="btnTheme" class="win-btn text" title="切换到浅色主题">☀</button>
-          <button id="btnLauncher" class="win-btn text" title="打开独立启动器窗口">▤</button>
+          <button id="btnLauncher" class="win-btn text" title="回到启动器">▤</button>
           <button id="btnMin" class="win-btn" title="最小化">
             <svg viewBox="0 0 12 12" width="12" height="12"><path d="M2 6h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /></svg>
           </button>
@@ -36,14 +36,7 @@
         </div>
       </header>
 
-      <nav class="tabs">
-        <button class="tab active" data-view="generate" type="button">生成客户端</button>
-        <button class="tab" data-view="launcher" type="button">
-          启动器<span class="tab-badge" id="clientCount">0</span>
-        </button>
-      </nav>
-
-      <main class="content view active" id="view-generate">
+      <main class="content">
         <section class="col left">
           <div class="card form">
             <label class="field">
@@ -186,29 +179,7 @@
         </section>
       </main>
 
-      <main class="launcher view" id="view-launcher">
-        <div class="launcher-head">
-          <div>
-            <div class="launcher-title">已生成的客户端</div>
-            <div class="launcher-sub" id="launcherSub">从 Cloudgame\ 扫到的成品，双击卡片或点「启动」直接运行</div>
-          </div>
-          <div class="launcher-actions">
-            <button id="btnRefreshClients" class="mini-btn" type="button">刷新</button>
-            <button id="btnOpenClientsDir" class="mini-btn ghost" type="button">打开目录</button>
-          </div>
-        </div>
 
-        <div id="clientList" class="client-list"></div>
-
-        <div id="clientEmpty" class="empty hidden">
-          <div class="empty-title">还没有生成任何客户端</div>
-          <div class="empty-sub">先去「生成客户端」粘一个云游戏网址，生成完这里就能一键启动。</div>
-          <button id="btnGoGenerate" class="mini-btn strong" type="button">去生成</button>
-        </div>
-      </main>
-    </div>
-
-    <script src="clients-view.js"></script>
     <script src="renderer.js"></script>
   </body>
 </html>
