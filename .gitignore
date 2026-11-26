@@ -2,14 +2,11 @@
 toolchain/node_modules/
 toolchain/package-lock.json
 
-# 打包出来的成品与中间产物
+# 打包出来的成品与中间产物（只保留 launcher-gui.cs 源码）
 *.exe
 *.zip
-_build/gui-release/
-_build/payload.zip
-_build/gui-payload.zip
-_build/PayloadInfo.cs
-_build/favicon-download.bin
+_build/*
+!_build/launcher-gui.cs
 gui/app/package-lock.json
 
 # 生成的客户端（默认输出目录：一个网址一个子文件夹）
