@@ -38,7 +38,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$FORGE_VERSION = '1.0.0'
+$FORGE_VERSION = '1.2.1'
 $forgeRoot = $PSScriptRoot
 $tpl = Join-Path $forgeRoot 'lib\template'
 $toolchain = Join-Path $forgeRoot 'toolchain'
@@ -227,6 +227,9 @@ try {
     $electronVersion = Ensure-Toolchain -Toolchain $toolchain
 } catch {
     Fail $_.Exception.Message
+}
+if ("$electronVersion" -notmatch '^\d+\.\d+\.\d+') {
+    Fail "Electron 版本异常：'$electronVersion'（应形如 44.7.2）"
 }
 Info "toolchain: electron $electronVersion / electron-builder OK"
 

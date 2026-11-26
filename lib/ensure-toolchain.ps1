@@ -40,8 +40,28 @@ function Ensure-Toolchain {
         Push-Location $Toolchain
         try {
             Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-            & npm.cmd install --no-audit --no-fund
-            if ($LASTEXITCODE -ne 0) { throw "npm install 失败（exit $LASTEXITCODE）" }
+            # 两个坑：
+            #   1) 直接 & npm.cmd ...：它的 stdout 会成为函数返回值，污染 $electronVersion
+            #      （曾导致生成的 package.json 里 electronVersion 变成数组，electron-builder 报错）
+            #   2) `2>&1 | ...`：npm 的 deprecation 警告走 stderr，被当成 ErrorRecord，
+            #      在 $ErrorActionPreference='Stop' 下会直接中断脚本
+            # 所以统一重定向到临时文件，再回显尾部几行。
+            $npmLog = Join-Path ([System.IO.Path]::GetTempPath()) ("ccf-npm-" + [guid]::NewGuid().ToString('N').Substring(0, 6) + ".log")
+            # 3) 原生命令的 stderr 在 $ErrorActionPreference='Stop' 下会被当成终止性错误
+            #    （npm 的 deprecation 警告就足以中断脚本），所以这里临时降级 EAP。
+            $prevEap = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            try {
+                & npm.cmd install --no-audit --no-fund *> $npmLog
+                $npmCode = $LASTEXITCODE
+            } finally {
+                $ErrorActionPreference = $prevEap
+            }
+            if (Test-Path $npmLog) {
+                Get-Content $npmLog -Tail 8 | ForEach-Object { Write-Host "   $_" }
+                Remove-Item $npmLog -Force -ErrorAction SilentlyContinue
+            }
+            if ($npmCode -ne 0) { throw "npm install 失败（exit $npmCode）" }
         } finally {
             Pop-Location
         }
@@ -60,8 +80,20 @@ function Ensure-Toolchain {
         Push-Location $electronDir
         try {
             Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-            & node install.js
-            if ($LASTEXITCODE -ne 0) { throw "Electron 运行时下载失败（exit $LASTEXITCODE）" }
+            $insLog = Join-Path ([System.IO.Path]::GetTempPath()) ("ccf-install-" + [guid]::NewGuid().ToString('N').Substring(0, 6) + ".log")
+            $prevEap2 = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            try {
+                & node install.js *> $insLog
+                $insCode = $LASTEXITCODE
+            } finally {
+                $ErrorActionPreference = $prevEap2
+            }
+            if (Test-Path $insLog) {
+                Get-Content $insLog -Tail 6 | ForEach-Object { Write-Host "   $_" }
+                Remove-Item $insLog -Force -ErrorAction SilentlyContinue
+            }
+            if ($insCode -ne 0) { throw "Electron 运行时下载失败（exit $insCode）" }
         } finally {
             Pop-Location
         }
@@ -74,5 +106,9 @@ function Ensure-Toolchain {
         throw "electron-builder 缺失：$eb`n请删除 $Toolchain\node_modules 后重新 npm install。"
     }
 
-    return ([System.IO.File]::ReadAllText($electronPkg, [System.Text.Encoding]::UTF8) | ConvertFrom-Json).version
+    $ver = ([System.IO.File]::ReadAllText($electronPkg, [System.Text.Encoding]::UTF8) | ConvertFrom-Json).version
+    if ($ver -notmatch '^\d+\.\d+\.\d+') {
+        throw "读到的 Electron 版本不合法：'$ver'（$electronPkg）"
+    }
+    return $ver
 }

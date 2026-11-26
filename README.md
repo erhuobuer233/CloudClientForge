@@ -260,6 +260,17 @@ cd toolchain\node_modules\electron
 node install.js
 ```
 
+**4.6 首次运行就报 `Invalid configuration object` / `configuration.electronVersion should be: null | string`？**
+
+v1.2.0 及更早的一个真实 bug：**恰好在那次运行里第一次安装工具链**时，`npm install` 的输出会被
+`Ensure-Toolchain` 当成返回值，`$electronVersion` 变成 `["", "added 284 packages in 47s", "44.7.2"]`
+这样的数组，写进 `app\package.json` 后 electron-builder 直接拒绝。
+
+- **处理**：升级到 **v1.2.1+**（`ensure-toolchain.ps1` 已修：npm/node 输出改走 host 流 + 临时降级 EAP）
+- 已经生成的坏目录：勾上「覆盖同名目录」重新生成一次即可；也可以手工把 `app\package.json` 里的
+  `"electronVersion": [...]` 改成 `"electronVersion": "44.7.2"`
+- 判断特征：`package.json` 里 `electronVersion` 不是单个字符串
+
 **5. 打包失败：找不到 electron-builder**
 `toolchain\node_modules` 被删了。把它恢复（从别的客户端项目 `app\node_modules` 拷一份），
 或者进生成项目的 `app\` 目录 `npm install`，再把 `tools\build-client.ps1` 里的 `$eb`

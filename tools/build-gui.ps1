@@ -55,6 +55,9 @@ if (-not (Test-Path (Join-Path $build 'launcher-gui.cs'))) { throw "找不到 $b
 # 所以第一次用必须再跑一次 node_modules\electron\install.js（脚本已自动处理）。
 . (Join-Path $root 'lib\ensure-toolchain.ps1')
 $electronVersion = Ensure-Toolchain -Toolchain $toolchain -NoInstall:$NoInstall
+if ("$electronVersion" -notmatch '^\d+\.\d+\.\d+') {
+    throw "Electron 版本异常：'$electronVersion'（应形如 44.7.2）"
+}
 Write-Host "   electron $electronVersion / electron-builder OK  |  CloudClientForge v$Version"
 
 Step '1/5 生成界面图标'
