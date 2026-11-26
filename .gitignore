@@ -1,0 +1,26 @@
+# 依赖 / 工具链（约 450MB，按需自行安装，见 toolchain/README.md）
+toolchain/node_modules/
+toolchain/package-lock.json
+
+# 打包出来的成品与中间产物
+*.exe
+*.zip
+_build/gui-release/
+_build/payload.zip
+_build/gui-payload.zip
+_build/PayloadInfo.cs
+_build/favicon-download.bin
+gui/app/package-lock.json
+
+# 生成的客户端（默认输出目录：一个网址一个子文件夹）
+Cloudgame/
+
+# 运行期 / 系统垃圾
+*.log
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/

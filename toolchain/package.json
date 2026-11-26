@@ -1,0 +1,11 @@
+{
+  "name": "cloudclientforge-toolchain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CloudClientForge 的打包工具链（Electron + electron-builder）。node_modules 不进仓库，首次用 npm install 安装。",
+  "license": "MIT",
+  "dependencies": {
+    "electron": "44.7.2",
+    "electron-builder": "26.15.3"
+  }
+}

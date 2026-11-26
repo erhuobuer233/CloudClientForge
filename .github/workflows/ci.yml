@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Smoke test (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Electron 下载约 100MB，缓存一下省时间
+      - name: Cache Electron / electron-builder
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-44.7.2-${{ runner.os }}
+          restore-keys: |
+            electron-44.7.2-
+
+      - name: Install toolchain
+        working-directory: toolchain
+        run: npm install --no-audit --no-fund
+
+      - name: PowerShell version
+        run: $PSVersionTable.PSVersion.ToString()
+
+      # 只生成工程、不打包 exe：验证模板替换、图标、JS 语法
+      - name: Scaffold smoke test
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\smoke-test.ps1

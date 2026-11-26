@@ -1,0 +1,43 @@
+{
+    "name":  "cloudclientforge-gui",
+    "productName":  "CloudClientForge",
+    "version":  "1.0.0",
+    "description":  "CloudClientForge - 一键把云游戏网页变成桌面客户端",
+    "author":  "本地封装",
+    "license":  "MIT",
+    "private":  true,
+    "main":  "src/main.js",
+    "build":  {
+                  "appId":  "com.cloudclientforge.gui",
+                  "productName":  "CloudClientForge",
+                  "electronVersion":  "44.7.2",
+                  "electronDist":  "../../toolchain/node_modules/electron/dist",
+                  "electronLanguages":  [
+                                            "zh-CN",
+                                            "en-US"
+                                        ],
+                  "disableAsarIntegrity":  true,
+                  "directories":  {
+                                      "output":  "../../_build/gui-release",
+                                      "buildResources":  "assets"
+                                  },
+                  "files":  [
+                                "src/**/*",
+                                "assets/icon.png",
+                                "assets/icon.ico",
+                                "package.json"
+                            ],
+                  "win":  {
+                              "icon":  "assets/icon.ico",
+                              "target":  [
+                                             {
+                                                 "target":  "dir",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             }
+                                         ],
+                              "artifactName":  "CloudClientForge-${version}-${arch}.${ext}"
+                          }
+              }
+}

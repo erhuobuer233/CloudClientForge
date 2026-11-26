@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>@@PRODUCT@@</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font-family: "Microsoft YaHei UI", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .card {
+        width: 100%;
+        height: 100%;
+        border-radius: 20px;
+        border: 1px solid rgba(160, 180, 255, 0.2);
+        background:
+          radial-gradient(110% 120% at 10% 0%, rgba(124, 139, 255, 0.26), transparent 55%),
+          linear-gradient(165deg, #0c1122 0%, #10162e 60%, #0a0f1e 100%);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+        padding: 18px 20px 14px;
+        display: flex;
+        flex-direction: column;
+        opacity: 0;
+        transform: scale(0.98);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      .card.in { opacity: 1; transform: scale(1); }
+      .row { display: flex; gap: 14px; align-items: flex-start; flex: 1; min-height: 0; }
+      .badge {
+        width: 42px;
+        height: 42px;
+        flex: none;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: #0a0d18;
+        background: linear-gradient(135deg, #9aa6ff, #c79bff);
+        box-shadow: 0 8px 20px rgba(124, 139, 255, 0.35);
+      }
+      .badge.warn {
+        background: linear-gradient(135deg, #ffd28a, #ff9c8a);
+      }
+      .texts { min-width: 0; }
+      .title {
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #eef1ff;
+        margin: 2px 0 6px;
+      }
+      .detail {
+        font-size: 12px;
+        line-height: 1.65;
+        color: #99a5c9;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 10px;
+        flex: none;
+      }
+      .btn {
+        height: 34px;
+        padding: 0 16px;
+        border-radius: 11px;
+        border: 1px solid rgba(150, 170, 255, 0.2);
+        background: rgba(255, 255, 255, 0.05);
+        color: #dfe5ff;
+        font-family: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        transition: 0.16s ease;
+        -webkit-app-region: no-drag;
+      }
+      .btn:hover { background: rgba(255, 255, 255, 0.12); }
+      .btn:active { transform: scale(0.97); }
+      .btn.primary {
+        border-color: transparent;
+        color: #0a0d18;
+        font-weight: 600;
+        background: linear-gradient(135deg, #9aa6ff, #c79bff);
+        box-shadow: 0 8px 20px rgba(124, 139, 255, 0.3);
+      }
+      .btn.danger {
+        border-color: rgba(251, 113, 133, 0.4);
+        color: #ffb3bd;
+        background: rgba(251, 113, 133, 0.12);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="row">
+        <div class="badge" id="badge">?</div>
+        <div class="texts">
+          <div class="title" id="title"></div>
+          <div class="detail" id="detail"></div>
+        </div>
+      </div>
+      <div class="actions" id="actions"></div>
+    </div>
+    <script>
+      window.__setModal = function (data) {
+        data = data || {};
+        var badge = document.getElementById('badge');
+        var title = document.getElementById('title');
+        var detail = document.getElementById('detail');
+        var actions = document.getElementById('actions');
+        badge.textContent = data.icon || '?';
+        if (data.tone === 'warn') badge.className = 'badge warn';
+        title.textContent = data.title || '';
+        detail.textContent = data.detail || '';
+        actions.innerHTML = '';
+        var buttons = data.buttons || ['好的'];
+        var primary = typeof data.primary === 'number' ? data.primary : 0;
+        buttons.forEach(function (label, i) {
+          var btn = document.createElement('button');
+          btn.className = 'btn' + (i === primary ? ' primary' : '') + (i === data.danger ? ' danger' : '');
+          btn.textContent = label;
+          btn.addEventListener('click', function () {
+            try {
+              window.modalApi.done(i);
+            } catch (e) {}
+          });
+          actions.appendChild(btn);
+        });
+        document.querySelector('.card').classList.add('in');
+      };
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          try {
+            window.modalApi.done(typeof window.__cancelIndex === 'number' ? window.__cancelIndex : -1);
+          } catch (err) {}
+        }
+      });
+    </script>
+  </body>
+</html>
