@@ -700,7 +700,10 @@ ipcMain.handle('gui:copy', (_e, text) => {
   return true;
 });
 
-ipcMain.on('gui:minimize', () => mainWindow && mainWindow.minimize());
+ipcMain.on('gui:minimize', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win && !win.isDestroyed()) win.minimize();
+});
 ipcMain.on('gui:close', (e) => {
   killChild();
   const win = BrowserWindow.fromWebContents(e.sender);

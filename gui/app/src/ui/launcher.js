@@ -13,6 +13,7 @@
   const btnTheme = document.getElementById('btnTheme');
   const btnMain = document.getElementById('btnMain');
   const btnClose = document.getElementById('btnClose');
+  const btnMin = document.getElementById('btnMin');
   const btnOpenMain = document.getElementById('btnOpenMain');
   const verText = document.getElementById('verText');
   const updateText = document.getElementById('updateText');
@@ -40,6 +41,7 @@
   if (btnMain) btnMain.addEventListener('click', () => window.forgeGui.openMain());
   if (btnOpenMain) btnOpenMain.addEventListener('click', () => window.forgeGui.openMain());
   if (btnClose) btnClose.addEventListener('click', () => window.close());
+  if (btnMin) btnMin.addEventListener('click', () => window.forgeGui.minimize());
 
   if (btnTheme) {
     btnTheme.addEventListener('click', async () => {

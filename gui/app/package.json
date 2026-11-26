@@ -1,7 +1,7 @@
 {
     "name":  "cloudclientforge-gui",
     "productName":  "CloudClientForge",
-    "version":  "1.3.0",
+    "version":  "1.3.1",
     "description":  "CloudClientForge - 一键把云游戏网页变成桌面客户端",
     "author":  "本地封装",
     "license":  "MIT",
