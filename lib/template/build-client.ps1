@@ -1,4 +1,4 @@
-# 把文件夹版打包成「带缓存的单文件启动器」，输出到根目录 @@PRODUCT@@.exe
+﻿# 把文件夹版打包成「带缓存的单文件启动器」，输出到根目录 @@PRODUCT@@.exe
 #
 # 由 CloudClientForge 生成。用法（一条命令，缺文件夹版会自动生成）：
 #   powershell -ExecutionPolicy Bypass -File tools\build-client.ps1
@@ -22,6 +22,12 @@ $toolchain = '@@TOOLCHAIN@@'
 $eb        = Join-Path $toolchain 'node_modules\.bin\electron-builder.cmd'
 
 if (-not (Test-Path $csc)) { throw "找不到 csc.exe：$csc" }
+
+# Electron 44 起没有 postinstall：npm install 不会下载运行时二进制，这里先确认一次
+$tcElectron = Join-Path $toolchain 'node_modules\electron\dist\electron.exe'
+if (-not (Test-Path $tcElectron)) {
+    throw "Electron 运行时缺失：$tcElectron`n请在 `"$toolchain`" 目录执行：npm install 之后 node node_modules\electron\install.js"
+}
 if (-not (Test-Path (Join-Path $build 'launcher.cs'))) { throw "找不到 $build\launcher.cs" }
 New-Item -ItemType Directory -Force -Path $build | Out-Null
 

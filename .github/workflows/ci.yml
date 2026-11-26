@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # Electron 下载约 100MB，缓存一下省时间
       - name: Cache Electron / electron-builder
@@ -35,6 +35,11 @@ jobs:
       - name: Install toolchain
         working-directory: toolchain
         run: npm install --no-audit --no-fund
+
+      # Electron 44 没有 postinstall：`npm install` 不会下载运行时二进制，要显式跑一次
+      - name: Download Electron runtime
+        working-directory: toolchain
+        run: node node_modules/electron/install.js
 
       - name: PowerShell version
         run: $PSVersionTable.PSVersion.ToString()

@@ -54,7 +54,7 @@
 | --- | --- |
 | 系统 | **仅 Windows 10 / 11（x64）**。打包依赖 Windows 自带的 `.NET Framework` `csc.exe` 与 Win32 路径，macOS / Linux 不能运行 |
 | PowerShell | 5.1 或更高（Win10/11 自带）；`forge.ps1` 启动时会自检 |
-| Node.js | 18+ 与 npm（只用于装一次工具链 `toolchain\`，以及 `npm start` 调试源码） |
+| Node.js | **22.12+** 与 npm（Electron 44 的引擎要求；只用于装一次工具链 `toolchain\`，以及 `npm start` 调试源码） |
 | 磁盘 | 约 1.5 GB（工具链 450MB + 一个生成客户端约 420MB + 解包缓存） |
 | 其它 | 打包/运行不需要管理员权限；生成的客户端只依赖系统自带 .NET Framework 4.x |
 
@@ -239,7 +239,8 @@ powershell -ExecutionPolicy Bypass -File forge.ps1 -Url "..." -ProbeSelectors "#
 **4.5 打包报 `The specified electronDist does not exist`？**
 
 说明 electron 的**包**装好了，但它的**运行时二进制**（`toolchain\node_modules\electron\dist`，约 100MB）
-没下载下来——那是安装时的 postinstall 现下的，网络受限或 `ignore-scripts` 被打开时会静默跳过。
+没下载下来。**Electron 44 起已经没有 postinstall 了**，`npm install` 只装包、不下二进制，
+必须再跑一次 `node node_modules\electron\install.js`（或 `npx install-electron`）。
 
 现在构建脚本会自动检测并补下载（带 npmmirror 镜像），日志里会看到
 `Electron 运行时缺失，正在补下载二进制…`。手动补也行：

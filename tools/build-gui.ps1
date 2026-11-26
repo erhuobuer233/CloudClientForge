@@ -39,49 +39,11 @@ Step '0/5 检查环境'
 if (-not (Test-Path $csc)) { throw "找不到 .NET 编译器 csc.exe：$csc（需要 Windows + .NET Framework）" }
 if (-not (Test-Path (Join-Path $build 'launcher-gui.cs'))) { throw "找不到 $build\launcher-gui.cs" }
 
-# 工具链：缺 node_modules 就装；还要单独确认 Electron 的运行时（dist）在不在。
-# 坑：electron 包的二进制是 postinstall 现下的（约 100MB），网络受限 / 被策略跳过时
-#     包本体装好了但 dist 目录是空的，electron-builder 随后就会报
-#     "The specified electronDist does not exist"。
-$electronDir = Join-Path $toolchain 'node_modules\electron'
-if (-not $env:ELECTRON_MIRROR) { $env:ELECTRON_MIRROR = 'https://npmmirror.com/mirrors/electron/' }
-if (-not $env:ELECTRON_BUILDER_BINARIES_MIRROR) { $env:ELECTRON_BUILDER_BINARIES_MIRROR = 'https://npmmirror.com/mirrors/electron-builder-binaries/' }
-
-function Install-Toolchain {
-    Write-Host "   安装工具链依赖（npm install，首次约 1~2 分钟；镜像 $env:ELECTRON_MIRROR）..."
-    Push-Location $toolchain
-    try {
-        Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-        & npm.cmd install --no-audit --no-fund
-        if ($LASTEXITCODE -ne 0) { throw "npm install 失败（exit $LASTEXITCODE）" }
-    } finally {
-        Pop-Location
-    }
-}
-
-if (-not (Test-Path $eb) -or -not (Test-Path (Join-Path $electronDir 'package.json'))) {
-    if ($NoInstall) { throw "工具链没装好：请在 $toolchain 目录执行 npm install（或去掉 -NoInstall）" }
-    Install-Toolchain
-}
-
-if (-not (Test-Path $electronExe)) {
-    if ($NoInstall) { throw "Electron 运行时缺失：$electronExe（去掉 -NoInstall 让脚本自动补）" }
-    if (-not (Test-Path (Join-Path $electronDir 'install.js'))) { Install-Toolchain }
-    Write-Host '   Electron 运行时缺失，正在补下载二进制（约 100MB）...'
-    Push-Location $electronDir
-    try {
-        Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
-        & node install.js
-        if ($LASTEXITCODE -ne 0) { throw "Electron 运行时下载失败（exit $LASTEXITCODE）" }
-    } finally {
-        Pop-Location
-    }
-}
-if (-not (Test-Path $electronExe)) {
-    throw "Electron 运行时仍缺失：$electronExe`n请手动执行：cd toolchain; npm install（或设置 ELECTRON_MIRROR 后重试）"
-}
-if (-not (Test-Path $eb)) { throw "electron-builder 缺失：$eb" }
-$electronVersion = ([System.IO.File]::ReadAllText((Join-Path $toolchain 'node_modules\electron\package.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json).version
+# 工具链自检（缺依赖自动装、缺 Electron 运行时自动补下载）——与 forge.ps1 共用同一份逻辑。
+# 注意：Electron 44 起没有 postinstall，`npm install` 只装包、不下二进制，
+# 所以第一次用必须再跑一次 node_modules\electron\install.js（脚本已自动处理）。
+. (Join-Path $root 'lib\ensure-toolchain.ps1')
+$electronVersion = Ensure-Toolchain -Toolchain $toolchain -NoInstall:$NoInstall
 Write-Host "   electron $electronVersion / electron-builder OK"
 
 Step '1/5 生成界面图标'

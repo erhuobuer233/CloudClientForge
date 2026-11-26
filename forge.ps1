@@ -221,12 +221,13 @@ if ($PSVersionTable.PSVersion.Major -lt 5) {
 }
 
 if (-not (Test-Path $csc)) { Fail "找不到 .NET 编译器：$csc" }
-if (-not (Test-Path (Join-Path $toolchain 'node_modules\electron\dist\electron.exe'))) {
-    Fail "构建工具链缺失：$toolchain\node_modules\electron`n（把其他客户端项目的 app\node_modules 拷到 $toolchain\node_modules 即可，或在该目录 npm install electron electron-builder）"
+# 工具链自检（缺依赖自动 npm install；缺 Electron 运行时二进制自动补下载）
+. (Join-Path $forgeRoot 'lib\ensure-toolchain.ps1')
+try {
+    $electronVersion = Ensure-Toolchain -Toolchain $toolchain
+} catch {
+    Fail $_.Exception.Message
 }
-$electronVersion = ([System.IO.File]::ReadAllText((Join-Path $toolchain 'node_modules\electron\package.json'), [System.Text.Encoding]::UTF8) | ConvertFrom-Json).version
-$ebCmd = Join-Path $toolchain 'node_modules\.bin\electron-builder.cmd'
-if (-not (Test-Path $ebCmd)) { Fail "找不到 electron-builder：$ebCmd" }
 Info "toolchain: electron $electronVersion / electron-builder OK"
 
 # ------------------------------------------------------------------ 1. 读取网址
