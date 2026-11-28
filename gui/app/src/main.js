@@ -19,7 +19,7 @@ const {
 } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
-const { spawn } = require('node:child_process');
+const { spawn, execFile } = require('node:child_process');
 const https = require('node:https');
 
 const PRODUCT = 'CloudClientForge';
@@ -467,6 +467,44 @@ function cmpVersion(a, b) {
   }
   return 0;
 }
+
+/** 跑一个命令拿版本号（失败返回 null，不抛错） */
+function probeVersion(file, args) {
+  return new Promise((resolve) => {
+    try {
+      execFile(
+        file,
+        args,
+        { windowsHide: true, timeout: 6000, env: { ...process.env } },
+        (err, stdout) => resolve(err ? null : String(stdout || '').trim().split(/\r?\n/)[0] || null)
+      );
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
+ipcMain.handle('gui:check-node', async () => {
+  const shell = process.env.ComSpec || 'cmd.exe';
+  const node = await probeVersion('node', ['--version']);
+  const npm = node
+    ? await probeVersion(shell, ['/d', '/s', '/c', 'npm --version'])
+    : null;
+
+  const minNode = '22.12';
+  let reason = null;
+  if (!node) reason = 'node-missing';
+  else if (!npm) reason = 'npm-missing';
+  else {
+    const v = node.replace(/^v/i, '').replace(/[^0-9.].*$/, '');
+    const parts = v.split('.').map((n) => parseInt(n, 10) || 0);
+    const major = parts[0] || 0;
+    const minor = parts[1] || 0;
+    if (major < 22 || (major === 22 && minor < 12)) reason = 'node-too-old';
+  }
+
+  return { ok: !reason, node, npm, minNode, reason };
+});
 
 ipcMain.handle('gui:check-update', async () => {
   const current = APP_VERSION;

@@ -18,6 +18,15 @@ try {
 
 . (Join-Path $root 'lib\ensure-toolchain.ps1')
 
+# 先确认有 Node.js / npm，缺了就给可照着做的安装引导
+$nodeInfo = Test-NodeRuntime
+if (-not $nodeInfo.ok) {
+    Write-Host ''
+    Write-Host (Get-NodeInstallHint -Reason $nodeInfo.reason -Info $nodeInfo) -ForegroundColor Yellow
+    Write-Host ''
+    exit 2
+}
+Write-Host ("Node.js {0} / npm {1}" -f $nodeInfo.node, $nodeInfo.npm)
 Write-Host "工具链目录：$toolchain"
 
 try {

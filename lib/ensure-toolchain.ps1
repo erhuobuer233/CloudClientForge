@@ -1,4 +1,85 @@
-﻿# CloudClientForge —— 工具链自检 / 自动安装
+﻿# ------------------------------------------------------------------ Node.js 检测
+
+# 生成客户端需要本机有 Node.js + npm（electron / electron-builder 都是 npm 包）。
+# 小白用户最常见的问题就是没装 Node，这里给出可照着做的引导，而不是一句 npm 报错。
+$script:NodeMinVersion = '22.12'
+
+function Test-NodeRuntime {
+    $result = [pscustomobject]@{
+        ok      = $false
+        node    = $null
+        npm     = $null
+        nodeExe = $null
+        npmExe  = $null
+        reason  = $null
+        minNode = $script:NodeMinVersion
+    }
+
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+        $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
+        if (-not $nodeCmd) {
+            $result.reason = 'node-missing'
+            return $result
+        }
+        $result.nodeExe = $nodeCmd.Source
+        $result.node = ((& node --version 2>$null) | Select-Object -First 1)
+        if ($npmCmd) {
+            $result.npmExe = $npmCmd.Source
+            $result.npm = ((& npm --version 2>$null) | Select-Object -First 1)
+        }
+
+        if (-not $result.npm) {
+            $result.reason = 'npm-missing'
+            return $result
+        }
+
+        $verText = ([string]$result.node).TrimStart('v', 'V')
+        $parsed = $null
+        if ([version]::TryParse(($verText -replace '[^0-9.].*$', ''), [ref]$parsed)) {
+            if ($parsed -lt [version]($script:NodeMinVersion)) {
+                $result.reason = 'node-too-old'
+                return $result
+            }
+        }
+
+        $result.ok = $true
+        return $result
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
+
+function Get-NodeInstallHint {
+    param([string]$Reason, $Info)
+
+    $lines = @()
+    switch ($Reason) {
+        'node-missing' {
+            $lines += '这台电脑还没安装 Node.js（生成客户端需要它，第一次装好之后就不用再管了）。'
+        }
+        'npm-missing' {
+            $lines += '检测到 node，但没找到 npm（Node.js 安装不完整）。'
+        }
+        'node-too-old' {
+            $lines += ("Node.js 版本过低（当前 {0}），Electron 44 需要 {1} 或更新。" -f $Info.node, $script:NodeMinVersion)
+        }
+        default {
+            $lines += 'Node.js 环境异常。'
+        }
+    }
+    $lines += ''
+    $lines += '怎么装（3 步，约 2 分钟）：'
+    $lines += '  1. 打开 https://nodejs.org/zh-cn/download ，下载 LTS 版（v22 或更新，选 Windows 安装包 .msi）'
+    $lines += '  2. 一路「下一步」装完，保持默认选项（它会自动把 node / npm 加进 PATH）'
+    $lines += '  3. 装完回到本程序，点「重新检测」；然后点「现在安装」下载工具链'
+    $lines += ''
+    $lines += '提示：装完如果程序仍提示未安装，把本程序关掉重新打开一次（PATH 需要重新读取）。'
+    return ($lines -join [Environment]::NewLine)
+}
+# CloudClientForge —— 工具链自检 / 自动安装
 #
 # 背景（两个都踩过）：
 #   1. electron 的**运行时二进制**（node_modules\electron\dist，约 100MB）不是随 npm 包一起下来的。
@@ -17,6 +98,12 @@ function Ensure-Toolchain {
         [Parameter(Mandatory = $true)][string]$Toolchain,
         [switch]$NoInstall
     )
+
+    # ---- 0. 先确认本机有 Node.js / npm ----
+    $nodeInfo = Test-NodeRuntime
+    if (-not $nodeInfo.ok) {
+        throw (Get-NodeInstallHint -Reason $nodeInfo.reason -Info $nodeInfo)
+    }
 
     $electronDir = Join-Path $Toolchain 'node_modules\electron'
     $electronPkg = Join-Path $electronDir 'package.json'

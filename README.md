@@ -272,6 +272,18 @@ cd toolchain\node_modules\electron
 node install.js
 ```
 
+**4.54 提示「需要先安装 Node.js」怎么办？**
+
+生成客户端要用 Node.js 的 npm 去下载 Electron 工具链，所以第一次必须先装一次 Node.js
+（装完就一直能用，不用每次装）。界面会拦住生成按钮，并给一个 **「如何安装 Node.js」** 按钮，
+点开照着做：
+
+1. 打开 <https://nodejs.org/zh-cn/download>，下载 **LTS 版**（v22 或更新）的 Windows 安装包 `.msi`
+2. 一路「下一步」装完，**保持默认选项**（会把 `node` / `npm` 加进 PATH）
+3. 回到程序点 **「重新检测」**，再点「现在安装」下载工具链
+
+装完如果仍提示未安装：把 CloudClientForge **关掉重新打开**（PATH 需要重新读取）。
+命令行用户同理：`forge.ps1` 会直接报出这条引导，`tools\install-toolchain.ps1` 也一样。
 **4.55 状态栏提示「工具链未安装」是不是坏了？**
 
 不是。**发布包里本来就不带 `toolchain\node_modules`**（约 450MB），只带 `toolchain\package.json`。

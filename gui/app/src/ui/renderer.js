@@ -29,6 +29,7 @@ const el = {
   envbar: $('#envbar'),
   envText: $('#envText'),
   btnInstallToolchain: $('#btnInstallToolchain'),
+  btnNodeHelp: $('#btnNodeHelp'),
   envProgress: $('#envProgress'),
   result: $('#result'),
   resultPath: $('#resultPath'),
@@ -357,6 +358,7 @@ el.btnAgain.addEventListener('click', () => {
 });
 
 if (el.btnInstallToolchain) el.btnInstallToolchain.addEventListener('click', () => installToolchain());
+if (el.btnNodeHelp) el.btnNodeHelp.addEventListener('click', () => showNodeHelp(lastNodeInfo));
 if (window.forgeGui.onToolchainStage) {
   window.forgeGui.onToolchainStage((payload) => {
     const stage = payload && payload.stage;
@@ -455,6 +457,87 @@ window.forgeGui.onExit(({ code }) => {
  *   - 发布包本来就不带 toolchain\node_modules（450MB）
  *   - 首次生成时 forge 会自动装（npm install + Electron 运行时）
  */
+// ---------------------------------------------------------------- Node.js 引导
+
+const NODE_DOWNLOAD_URL = 'https://nodejs.org/zh-cn/download';
+
+function nodeHintText(node) {
+  if (!node) return '检测不到 Node.js 环境';
+  if (node.reason === 'node-missing') return '这台电脑还没有安装 Node.js（生成客户端需要它，装一次就够了）';
+  if (node.reason === 'npm-missing') return '检测到 node，但没有 npm（Node.js 安装不完整，建议重新安装一次）';
+  if (node.reason === 'node-too-old') return 'Node.js 版本过低（当前 ' + node.node + '），需要 ' + node.minNode + ' 或更新';
+  return 'Node.js 环境异常';
+}
+
+/** 小白引导：圆角弹窗 + 3 步说明 + 下载 / 重新检测 */
+function showNodeHelp(node) {
+  const host = document.getElementById('window');
+  if (!host) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML =
+    '<div class="dialog" role="dialog" aria-modal="true" style="width:min(500px,88%)">' +
+    '<div class="dialog-title">先装一下 Node.js（约 2 分钟）</div>' +
+    '<div class="dialog-body"></div>' +
+    '<ol class="node-steps">' +
+    '<li>打开 <b>nodejs.org</b> 下载 <b>LTS 版</b>（v' + (node && node.minNode ? node.minNode.split('.')[0] : '22') +
+    ' 或更新，选 Windows 安装包 <code>.msi</code>）</li>' +
+    '<li>一路「下一步」装完，<b>保持默认选项</b>（会自动把 node / npm 加进 PATH）</li>' +
+    '<li>装完回来点下面的<b>「重新检测」</b>，再点「现在安装」下载工具链</li>' +
+    '</ol>' +
+    '<div class="dialog-sub">装完如果仍提示未安装，把 CloudClientForge 关掉重新打开一次（PATH 需要重新读取）。</div>' +
+    '<div class="dialog-actions">' +
+    '<button class="mini-btn ghost" data-act="close" type="button">以后再说</button>' +
+    '<button class="mini-btn" data-act="recheck" type="button">重新检测</button>' +
+    '<button class="mini-btn strong" data-act="download" type="button">打开下载页</button>' +
+    '</div></div>';
+
+  overlay.querySelector('.dialog-body').textContent = nodeHintText(node);
+
+  const close = () => {
+    overlay.classList.remove('show');
+    setTimeout(() => overlay.remove(), 160);
+  };
+  overlay.addEventListener('click', async (e) => {
+    const act = e.target && e.target.dataset && e.target.dataset.act;
+    if (act === 'download') window.forgeGui.openExternal(NODE_DOWNLOAD_URL);
+    if (act === 'close') close();
+    if (act === 'recheck') {
+      close();
+      await refreshNodeState();
+    }
+    if (e.target === overlay) close();
+  });
+  host.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
+
+/** 检查 Node.js：缺了就显示引导按钮，否则回到正常的工具链状态 */
+let lastNodeInfo = null;
+
+async function refreshNodeState() {
+  let node = null;
+  try {
+    node = await window.forgeGui.checkNode();
+  } catch (_) {
+    node = null;
+  }
+  lastNodeInfo = node;
+  if (!node || !node.ok) {
+    el.envbar.className = 'envbar warn';
+    el.envText.innerHTML = '需要先安装 <b>Node.js</b> · 生成客户端要用它下载工具链 · ' +
+      (node && node.reason === 'node-too-old' ? '<code>' + node.node + '</code> 版本过低' : '没检测到');
+    if (el.btnNodeHelp) el.btnNodeHelp.classList.remove('hidden');
+    if (el.btnInstallToolchain) el.btnInstallToolchain.classList.add('hidden');
+    el.btnGenerate.disabled = true;
+    appendLog('[!] ' + nodeHintText(node) + '。点界面上的「如何安装 Node.js」看步骤，或访问 ' + NODE_DOWNLOAD_URL);
+    return false;
+  }
+  if (el.btnNodeHelp) el.btnNodeHelp.classList.add('hidden');
+  el.btnGenerate.disabled = false;
+  return true;
+}
+
 function renderEnv(info) {
   const btn = el.btnInstallToolchain;
   if (!info || !info.ok) {
@@ -560,7 +643,8 @@ async function installToolchain() {
 (async function init() {
   const info = await window.forgeGui.info();
 
-  renderEnv(info);
+  const nodeOk = await refreshNodeState();
+  if (nodeOk) renderEnv(info);
 
   forgeInfoCache = info;
   applySettings(await window.forgeGui.settings());
