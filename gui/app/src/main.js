@@ -399,6 +399,28 @@ function listClients() {
       } catch (_) {
         icon = null;
       }
+      // 这个客户端是谁生成的、哪个版本、用的哪个网址（都能从生成物里读出来）
+      let clientVersion = null;
+      try {
+        const readme = fs.readFileSync(path.join(dir, 'README.md'), 'utf8');
+        const m = readme.match(/forge\.ps1 \(v(\d+\.\d+\.\d+)\)/);
+        if (m) clientVersion = m[1];
+      } catch (_) {}
+      if (!clientVersion) {
+        try {
+          const changelog = fs.readFileSync(path.join(dir, 'CHANGELOG.md'), 'utf8');
+          const m = changelog.match(/CloudClientForge v(\d+\.\d+\.\d+) 生成/);
+          if (m) clientVersion = m[1];
+        } catch (_) {}
+      }
+
+      let url = null;
+      try {
+        const src = fs.readFileSync(path.join(dir, 'app', 'src', 'main.js'), 'utf8');
+        const m = src.match(/const CLOUD_URL = '([^']+)'/);
+        if (m) url = m[1];
+      } catch (_) {}
+
       items.push({
         host: h.name,
         name: f.replace(/\.exe$/i, ''),
@@ -407,6 +429,10 @@ function listClients() {
         size: st ? st.size : 0,
         mtime: st ? st.mtimeMs : 0,
         icon,
+        clientVersion,
+        url,
+        outdated: !clientVersion || clientVersion !== APP_VERSION,
+        canUpdate: !!url,
       });
     }
   }
@@ -614,6 +640,57 @@ function clientsGuard(p) {
   }
   return target;
 }
+
+let updateBusy = false;
+
+ipcMain.handle('gui:client-update', async (e, exePath) => {
+  if (updateBusy) return { ok: false, error: '已有更新任务在进行' };
+  if (!forgeRoot) return { ok: false, error: '没找到生成器目录' };
+
+  let p = null;
+  try {
+    p = clientsGuard(exePath);
+  } catch (err) {
+    return { ok: false, error: (err && err.message) || String(err) };
+  }
+  const dir = path.dirname(p);
+
+  let url = null;
+  try {
+    const src = fs.readFileSync(path.join(dir, 'app', 'src', 'main.js'), 'utf8');
+    const m = src.match(/const CLOUD_URL = '([^']+)'/);
+    if (m) url = m[1];
+  } catch (_) {}
+  if (!url) return { ok: false, error: '读不到这个客户端的目标网址，无法自动更新（请重新手动生成）' };
+
+  const forge = path.join(forgeRoot, 'forge.ps1');
+  if (!fs.existsSync(forge)) return { ok: false, error: '找不到 forge.ps1' };
+
+  updateBusy = true;
+  const send = (text) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win && !win.isDestroyed()) win.webContents.send('gui:client-update-log', text);
+  };
+  try {
+    const code = await new Promise((resolve) => {
+      const cp = spawn(
+        'powershell.exe',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', forge, '-Url', url, '-Out', dir, '-Force'],
+        { windowsHide: true, env: { ...process.env, ELECTRON_RUN_AS_NODE: '' } }
+      );
+      const pipe = (stream) => {
+        stream.on('data', (buf) => send(buf.toString('utf8')));
+      };
+      pipe(cp.stdout);
+      pipe(cp.stderr);
+      cp.on('error', () => resolve(-1));
+      cp.on('exit', (c) => resolve(c));
+    });
+    return { ok: code === 0, code, url };
+  } finally {
+    updateBusy = false;
+  }
+});
 
 ipcMain.handle('gui:client-delete', (_e, exePath) => {
   try {

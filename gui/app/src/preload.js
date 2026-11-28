@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld('forgeGui', {
   launchClient: (p) => ipcRenderer.invoke('gui:launch-client', p),
   reveal: (p) => ipcRenderer.invoke('gui:reveal', p),
   deleteClient: (p) => ipcRenderer.invoke('gui:client-delete', p),
+  updateClient: (p) => ipcRenderer.invoke('gui:client-update', p),
+  onClientUpdateLog: (cb) => ipcRenderer.on('gui:client-update-log', (_e, text) => cb(text)),
   renameClient: (p, name) => ipcRenderer.invoke('gui:client-rename', p, name),
   setClientIcon: (p) => ipcRenderer.invoke('gui:client-set-icon', p),
   openLauncher: () => ipcRenderer.invoke('gui:open-launcher'),

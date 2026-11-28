@@ -1699,3 +1699,44 @@ body {
   color: var(--accent);
   font-weight: 600;
 }
+/* 旧版客户端徽标 / 更新按钮 */
+.client-badge {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  line-height: 17px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(150, 170, 255, 0.18);
+}
+
+.client-badge.updatable {
+  color: #ffd8a8;
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.mini-btn.accent {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.14);
+  color: #ffd8a8;
+}
+
+.mini-btn.accent:hover {
+  background: rgba(251, 191, 36, 0.24);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+:root[data-theme='light'] .client-badge.updatable {
+  color: #8a5a00;
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(200, 140, 0, 0.35);
+}
+
+:root[data-theme='light'] .mini-btn.accent {
+  color: #8a5a00;
+  background: rgba(251, 191, 36, 0.22);
+  border-color: rgba(200, 140, 0, 0.4);
+}

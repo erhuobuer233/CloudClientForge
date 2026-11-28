@@ -200,6 +200,27 @@
       }
     }
 
+    async function doUpdate(item, btn) {
+      const oldText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '更新中…';
+      toast('正在用 v' + (window.__ccfVersion || '') + ' 重新生成：' + item.name);
+      try {
+        const res = await window.forgeGui.updateClient(item.exePath);
+        if (res && res.ok) {
+          toast('已更新：' + item.name);
+          refresh();
+        } else {
+          toast('更新失败：' + ((res && res.error) || ('exit ' + (res && res.code))), 'error');
+        }
+      } catch (err) {
+        toast('更新失败：' + ((err && err.message) || '未知错误'), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+      }
+    }
+
     async function doIcon(item) {
       const res = await window.forgeGui.setClientIcon(item.exePath);
       if (res && res.ok) {
@@ -243,12 +264,36 @@
       name.textContent = item.name;
       const sub = document.createElement('div');
       sub.className = 'client-sub';
-      sub.textContent = [item.host, fmtSize(item.size), fmtDate(item.mtime)].filter(Boolean).join(' · ');
+      const verText = item.clientVersion ? 'v' + item.clientVersion : '版本未知';
+      sub.textContent = [item.host, fmtSize(item.size), verText].filter(Boolean).join(' · ');
       meta.appendChild(name);
       meta.appendChild(sub);
 
+      if (item.outdated) {
+        const badge = document.createElement('span');
+        badge.className = 'client-badge' + (item.canUpdate ? ' updatable' : '');
+        badge.textContent = item.canUpdate
+          ? (item.clientVersion ? 'v' + item.clientVersion + ' → v' + (window.__ccfVersion || '') : '旧版本 · 可更新')
+          : '版本未知';
+        badge.title = item.canUpdate ? '这个客户端是用旧版生成器做的，点「更新」重新生成' : '缺少目标网址，无法自动更新';
+        meta.appendChild(badge);
+      }
+
       const actions = document.createElement('div');
       actions.className = 'client-actions';
+
+      let btnUpdate = null;
+      if (item.outdated && item.canUpdate) {
+        btnUpdate = document.createElement('button');
+        btnUpdate.className = 'mini-btn accent';
+        btnUpdate.type = 'button';
+        btnUpdate.textContent = '更新';
+        btnUpdate.title = '用当前版本的 CloudClientForge 重新生成这个客户端';
+        btnUpdate.addEventListener('click', (e) => {
+          e.stopPropagation();
+          doUpdate(item, btnUpdate);
+        });
+      }
 
       const btnLaunch = document.createElement('button');
       btnLaunch.className = 'mini-btn strong';
@@ -286,6 +331,7 @@
         menuFor(item, btnMore);
       });
 
+      if (btnUpdate) actions.appendChild(btnUpdate);
       actions.appendChild(btnLaunch);
       actions.appendChild(btnFolder);
       actions.appendChild(btnMore);

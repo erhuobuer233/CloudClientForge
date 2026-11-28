@@ -101,7 +101,10 @@
     }
     try {
       const info = await window.forgeGui.info();
-      if (verText && info && info.appVersion) verText.textContent = 'v' + info.appVersion;
+      if (info && info.appVersion) {
+        window.__ccfVersion = info.appVersion;
+        if (verText) verText.textContent = 'v' + info.appVersion;
+      }
     } catch (_) {}
     view.refresh();
     checkUpdate();
