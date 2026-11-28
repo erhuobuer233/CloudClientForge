@@ -186,9 +186,14 @@ powershell -ExecutionPolicy Bypass -File forge.ps1 -Url "..." -Shortcuts
 - **UI 关闭后自动恢复视角（不点击）**：站点弹窗 / 背包 / 菜单打开时会释放指针锁定，关闭后它想
   重新锁定，但 Chromium 要求 `requestPointerLock` 必须落在用户手势里（浏览器里那一下恰好是
   关闭 UI 的点击，Electron 里有时会丢，于是「视角转不动、点一下才恢复」）。
-  客户端收到 `pointerlockerror` 时**立刻**用带 `userGesture` 的 `executeJavaScript` 调页面里的
-  `__ccfRelock()`（实测 3ms 锁上），失败再快速重试 2 次；**全程不产生任何鼠标点击**，
-  所以不会误点到 UI 按钮。另外窗口重新获得焦点时会补一次，`F8` / 托盘「重新锁定视角」可手动触发。
+  恢复信号有两条：
+  1. 页面自己请求锁定被拒（`pointerlockerror`）→ 立刻补；
+  2. **光标被隐藏**（`cursor: none`，很多云游戏 UI 关闭后是这个状态，且不会再请求锁定）→
+     用 `MutationObserver` 抓 style/class 变化 + 50ms 兜底轮询 + mousemove 即时探测，
+     隐藏后约 **40ms** 内自动重新锁定（实测：类名切换 → 锁定 44ms，锁定本身 2ms）。
+  两条链路都用带 `userGesture` 的 `executeJavaScript` 调页面里的 `__ccfRelock()`，
+  **全程不产生任何鼠标点击**，不会误点 UI 按钮；失败自动重试 2 次。
+  窗口重新获得焦点时也会补一次，`F8` / 托盘「重新锁定视角」可手动触发；
   托盘菜单可整体关闭（「自动恢复视角锁定（不点击）」）。
   （启动界面里「先创建好但隐藏」的元素不会命中。）
 - **外链交给浏览器**：`window.open`、`target=_blank`、页面顶层跳转，
