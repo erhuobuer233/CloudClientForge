@@ -1511,18 +1511,26 @@ body {
   background: rgba(251, 113, 133, 0.16);
 }
 
-.mini-btn.more {
+/* 注意：.client-actions .mini-btn 里设了 padding: 0 12px（优先级更高），
+   这里必须用同等或更高的选择器把 padding 清掉，否则 18px 的图标会溢出到右边。 */
+.client-actions .mini-btn.more,
+.launcher-standalone .client-actions .mini-btn.more {
   width: 30px;
+  min-width: 30px;
   padding: 0;
   display: grid;
   place-items: center;
   line-height: 0;
 }
 
-.mini-btn.more svg {
+.client-actions .mini-btn.more svg,
+.launcher-standalone .client-actions .mini-btn.more svg {
   display: block;
+  width: 16px;
+  height: 16px;
   fill: currentColor;
   opacity: 0.9;
+  margin: 0;
 }
 /* 工具链状态栏里的「现在安装」按钮 */
 .envbar .mini-btn {

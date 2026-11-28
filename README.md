@@ -183,11 +183,13 @@ powershell -ExecutionPolicy Bypass -File forge.ps1 -Url "..." -Shortcuts
   ① 页面自己全屏；② 命中的画面元素**可见**且铺开（canvas / 有流 / 有画面 / 内含媒体）；
   ③ 兜底：铺满 ≥70% 视口的且正在播放的 video / canvas。
   **只在状态跳变时动作**，手动切的全屏不会被抢回来；退出游戏恢复原窗口。
-- **UI 关闭后自动恢复视角**：站点弹窗 / 背包 / 菜单打开时会释放指针锁定，关闭后它想重新锁定，
-  但 Chromium 要求 `requestPointerLock` 必须落在用户手势里（浏览器里那一下恰好是关闭 UI 的点击，
-  Electron 里有时会丢，于是「视角转不动、点一下才恢复」）。客户端收到 `pointerlockerror` 时，
-  用带 `userGesture` 的 `executeJavaScript` 让页面重新请求锁定；真失败才在光标处补一次点击。
-  仅在游戏内、且 10 秒内刚丢过锁定时触发（900ms 冷却），托盘菜单可关闭。
+- **UI 关闭后自动恢复视角（不点击）**：站点弹窗 / 背包 / 菜单打开时会释放指针锁定，关闭后它想
+  重新锁定，但 Chromium 要求 `requestPointerLock` 必须落在用户手势里（浏览器里那一下恰好是
+  关闭 UI 的点击，Electron 里有时会丢，于是「视角转不动、点一下才恢复」）。
+  客户端收到 `pointerlockerror` 时**立刻**用带 `userGesture` 的 `executeJavaScript` 调页面里的
+  `__ccfRelock()`（实测 3ms 锁上），失败再快速重试 2 次；**全程不产生任何鼠标点击**，
+  所以不会误点到 UI 按钮。另外窗口重新获得焦点时会补一次，`F8` / 托盘「重新锁定视角」可手动触发。
+  托盘菜单可整体关闭（「自动恢复视角锁定（不点击）」）。
   （启动界面里「先创建好但隐藏」的元素不会命中。）
 - **外链交给浏览器**：`window.open`、`target=_blank`、页面顶层跳转，
   只要不是入口页自己的地址，全部 `shell.openExternal`，客户端永远停在游戏页。
