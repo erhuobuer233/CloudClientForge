@@ -271,8 +271,12 @@
       const btnMore = document.createElement('button');
       btnMore.className = 'mini-btn ghost more';
       btnMore.type = 'button';
-      btnMore.textContent = '⋯';
       btnMore.title = '更多';
+      // 用 SVG 画三个点：字符「⋯」在不同字体/行高下会偏上或偏下
+      btnMore.innerHTML =
+        '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">' +
+        '<circle cx="4" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="14" cy="9" r="1.6"/>' +
+        '</svg>';
       btnMore.addEventListener('click', (e) => {
         e.stopPropagation();
         if (openMenu) {
