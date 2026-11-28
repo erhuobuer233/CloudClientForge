@@ -3,7 +3,7 @@
     "productName":  "CloudClientForge",
     "version":  "1.3.5",
     "description":  "CloudClientForge - 一键把云游戏网页变成桌面客户端",
-    "author":  "本地封装",
+    "author":  "CloudClientForge",
     "license":  "MIT",
     "private":  true,
     "main":  "src/main.js",

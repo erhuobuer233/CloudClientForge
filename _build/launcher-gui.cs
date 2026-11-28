@@ -1,4 +1,4 @@
-// CloudClientForge（GUI 版）—— 带缓存的自解压启动器
+﻿// CloudClientForge（GUI 版）—— 带缓存的自解压启动器
 //
 // 和生成的客户端用的是同一套思路：首次解包到 %LOCALAPPDATA%\CloudClientForgeDesktop\runtime\<指纹>，
 // 之后直接启动（约 1 秒）。
@@ -19,6 +19,7 @@ using System.Windows.Forms;
 
 [assembly: AssemblyTitle("CloudClientForge")]
 [assembly: AssemblyProduct("CloudClientForge")]
+[assembly: AssemblyCompany("CloudClientForge")]
 [assembly: AssemblyDescription("CloudClientForge - build a desktop client from a cloud game web page")]
 [assembly: AssemblyVersion(PayloadInfo.Version)]
 [assembly: AssemblyFileVersion(PayloadInfo.Version)]

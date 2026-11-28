@@ -1,4 +1,4 @@
-// @@PRODUCT@@ —— 带缓存的自解压启动器（由 CloudClientForge 生成）
+﻿// @@PRODUCT@@ —— 带缓存的自解压启动器（由 CloudClientForge 生成）
 //
 // 为什么要自己写启动器：
 //   electron-builder 的 portable 单文件版每次启动都要把运行环境重新解包到临时目录
@@ -24,6 +24,7 @@ using System.Threading;
 using System.Windows.Forms;
 
 [assembly: AssemblyTitle("@@PRODUCT@@")]
+[assembly: AssemblyCompany("CloudClientForge")]
 [assembly: AssemblyProduct("@@PRODUCT@@")]
 [assembly: AssemblyDescription("@@PRODUCT@@ Desktop (cached self-extracting launcher)")]
 [assembly: AssemblyVersion(PayloadInfo.Version)]
